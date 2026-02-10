@@ -72,3 +72,13 @@ public:
 private:
 	const float timeToTarget = 0.5f;           // np. How long I'm going to rotate
 };
+
+class Pursuit : public ISteeringBehavior
+{
+public:
+	Pursuit() = default;
+	virtual ~Pursuit() override = default;
+
+	//steering
+	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+};

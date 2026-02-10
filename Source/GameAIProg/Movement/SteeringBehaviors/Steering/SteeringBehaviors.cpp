@@ -93,3 +93,29 @@ SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
     return Steering;
 }
+
+SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+    SteeringOutput Steering{};
+   
+    FVector2D pursuerPosition{ Agent.GetPosition() };
+    float pursuerSpeed{ Agent.GetMaxLinearSpeed() };
+    FVector2D targetPos{ Target.Position };
+    FVector2D targetVel{ Target.LinearVelocity };
+
+    FVector2D toTarget{ targetPos - pursuerPosition };
+    float distance = toTarget.Size();
+    float timeToReach = 0;
+    if (pursuerSpeed != 0)
+    {
+        timeToReach = distance / pursuerSpeed;
+    }
+    
+    FVector2D predictedOffset = targetVel * timeToReach;
+    FVector2D predictedPos = targetPos + predictedOffset;
+
+    Steering.LinearVelocity = predictedPos - Agent.GetPosition();
+  
+
+    return Steering;
+}
