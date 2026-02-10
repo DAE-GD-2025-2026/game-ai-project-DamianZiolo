@@ -27,14 +27,20 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
 	SteeringOutput Steering{};
 
+    //if originalSpeed is lower than 0 it means it's not set up
+    if (originalMaxSpeed < 0.f)
+    {
+        originalMaxSpeed = Agent.GetMaxLinearSpeed();
+    }
+
+
 	const FVector2D toTarget = Target.Position - Agent.GetPosition();
-    const float distance = toTarget.Size(); // or Size2D() if you want planar distance
+    const float distance = toTarget.Size(); 
     Steering.LinearVelocity = toTarget;
 
     if (distance <= targetRadius)
     {
         Agent.SetMaxLinearSpeed(0);
-        // Steering.LinearVelocity = FVector2D::ZeroVector;
     }
     else if (distance <= slowRadius)
     {
@@ -42,13 +48,48 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
         float scale = (distance - targetRadius) / (slowRadius - targetRadius);
         scale = FMath::Clamp(scale, 0.f, 1.f);
 
-        Agent.SetMaxLinearSpeed(scale * 1000.f );
+        Agent.SetMaxLinearSpeed(scale * originalMaxSpeed );
     }
     else
     {
-        Agent.SetMaxLinearSpeed(1000.f);
+        Agent.SetMaxLinearSpeed(originalMaxSpeed);
     }
 
 
 	return Steering;
+}
+
+SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+    SteeringOutput Steering{};
+
+    FVector2D toTarget = Target.Position - Agent.GetPosition();
+    if (toTarget.IsNearlyZero())
+    {
+        Steering.AngularVelocity = 0.f;
+        return Steering;
+    }
+
+    float desiredOrientation = FMath::Atan2(toTarget.Y, toTarget.X);
+    float currentYawRad = FMath::DegreesToRadians(Agent.GetActorRotation().Yaw);
+    //This is smarter way becuase instead of rotating us 358 degrees, it's going to rotate us 2 degrees in other direction!
+    float rotation = FMath::FindDeltaAngleRadians(currentYawRad, desiredOrientation);
+
+    const float targetAngle = FMath::DegreesToRadians(1.f); //if difference is smaler than 1 degrees, then don't move
+    if (FMath::Abs(rotation) < targetAngle)
+    {
+        Steering.AngularVelocity = 0.f;
+        return Steering;
+    }
+
+    Steering.AngularVelocity = rotation / timeToTarget;
+    Steering.AngularVelocity = FMath::Clamp(
+    Steering.AngularVelocity,
+    -Agent.GetMaxAngularSpeed(),
+    Agent.GetMaxAngularSpeed()
+    );
+
+    
+
+    return Steering;
 }

@@ -57,6 +57,8 @@ public:
 
 //steering
 	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+private:
+	float originalMaxSpeed{-1.f};
 };
 
 class Face : public ISteeringBehavior
@@ -67,4 +69,6 @@ public:
 
 	//steering
 	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+private:
+	const float timeToTarget = 0.5f;           // np. How long I'm going to rotate
 };
