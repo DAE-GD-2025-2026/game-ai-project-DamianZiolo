@@ -7,13 +7,20 @@
 
 SteeringOutput Seek::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
-	SteeringOutput Steering{};
-	Steering.LinearVelocity = Target.Position - Agent.GetPosition();
+    SteeringOutput Steering{};
 
+    const FVector2D toTarget = Target.Position - Agent.GetPosition();
+    const float distance = toTarget.Size();
 
-	//Add debug rendering for grades :)
+    const float stopRadius = 1.f;
+    if (distance <= stopRadius)
+    {
+        Steering.LinearVelocity = FVector2D::ZeroVector;
+        return Steering;
+    }
 
-	return Steering;
+    Steering.LinearVelocity = toTarget;
+    return Steering;
 }
 
 SteeringOutput Flee::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
@@ -116,6 +123,32 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
     Steering.LinearVelocity = predictedPos - Agent.GetPosition();
   
+
+    return Steering;
+}
+
+SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+    SteeringOutput Steering{};
+
+    FVector2D pursuerPosition{ Agent.GetPosition() };
+    float pursuerSpeed{ Agent.GetMaxLinearSpeed() };
+    FVector2D targetPos{ Target.Position };
+    FVector2D targetVel{ Target.LinearVelocity };
+
+    FVector2D toTarget{ targetPos - pursuerPosition };
+    float distance = toTarget.Size();
+    float timeToReach = 0;
+    if (pursuerSpeed != 0)
+    {
+        timeToReach = distance / pursuerSpeed;
+    }
+
+    FVector2D predictedOffset = targetVel * timeToReach;
+    FVector2D predictedPos = targetPos + predictedOffset;
+
+    Steering.LinearVelocity = Agent.GetPosition() - predictedPos;
+
 
     return Steering;
 }
