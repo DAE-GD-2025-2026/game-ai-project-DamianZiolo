@@ -100,6 +100,52 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
     }
 
 
+    const FVector targetWorld = FVector(Target.Position, 0.f);
+
+    // Target destination
+    DrawDebugSphere(
+        Agent.GetWorld(),
+        targetWorld,
+        15.f,          // size of the ball
+        16,
+        FColor::Red,
+        false,
+        0.f
+    );
+
+    // Slow Radius
+    DrawDebugCircle(
+        Agent.GetWorld(),
+        targetWorld,
+        slowRadius,
+        64,
+        FColor::Yellow,
+        false,
+        0.f,
+        0,
+        2.f,
+        FVector(1, 0, 0),   // X axis
+        FVector(0, 1, 0),   // Y axis
+        false
+    );
+
+    // Target Radius
+    DrawDebugCircle(
+        Agent.GetWorld(),
+        targetWorld,
+        targetRadius,
+        64,
+        FColor::Blue,
+        false,
+        0.f,
+        0,
+        2.f,
+        FVector(1, 0, 0),
+        FVector(0, 1, 0),
+        false
+    );
+
+
 	return Steering;
 }
 
