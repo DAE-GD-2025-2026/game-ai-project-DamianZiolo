@@ -20,6 +20,24 @@ SteeringOutput Seek::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
     }
 
     Steering.LinearVelocity = toTarget;
+
+    //Debug part
+    const FVector start = FVector(Agent.GetPosition(), 0.f);
+    const FVector end = FVector(Target.Position, 0.f);
+
+    DrawDebugLine(
+        Agent.GetWorld(),
+        start,
+        end,
+        FColor::Green,
+        false,   // persistent lines
+        0.f,     // life time (0 = one frame)
+        0,
+        2.f      // thickness
+    );
+
+
+
     return Steering;
 }
 
