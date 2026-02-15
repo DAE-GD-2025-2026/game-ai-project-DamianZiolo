@@ -44,7 +44,26 @@ SteeringOutput Seek::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 SteeringOutput Flee::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
 	SteeringOutput Steering{};
-	Steering.LinearVelocity = Agent.GetPosition() - Target.Position;
+
+    const FVector2D awayFromTarget = Agent.GetPosition() - Target.Position;
+    Steering.LinearVelocity = awayFromTarget;
+
+    // Debug line: direction of flee
+    const FVector start = FVector(Agent.GetPosition(), 0.f);
+    const FVector2D dir = awayFromTarget.GetSafeNormal();
+    const FVector end = start + FVector(dir, 0.f) * 200.f;
+
+    DrawDebugLine(
+        Agent.GetWorld(),
+        start,
+        end,
+        FColor::Red,
+        false,
+        0.f,
+        0,
+        2.f
+    );
+
 	return Steering;
 }
 
