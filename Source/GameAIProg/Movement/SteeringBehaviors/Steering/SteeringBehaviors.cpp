@@ -179,7 +179,37 @@ SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
     Agent.GetMaxAngularSpeed()
     );
 
-    
+    const FVector start = FVector(Agent.GetPosition(), 0.f);
+
+    // Goal direction rotation:
+    const FVector2D desiredDir(FMath::Cos(desiredOrientation), FMath::Sin(desiredOrientation));
+    const FVector end = start + FVector(desiredDir, 0.f) * 200.f;
+
+    DrawDebugLine(
+        Agent.GetWorld(),
+        start,
+        end,
+        FColor::Cyan,
+        false,
+        0.f,
+        0,
+        2.f
+    );
+
+    //curent Direction rotation:
+    const FVector2D currentDir(FMath::Cos(currentYawRad), FMath::Sin(currentYawRad));
+
+    DrawDebugLine(
+        Agent.GetWorld(),
+        start,
+        start + FVector(currentDir, 0.f) * 200.f,
+        FColor::Green,
+        false,
+        0.f,
+        0,
+        2.f
+    );
+
 
     return Steering;
 }
