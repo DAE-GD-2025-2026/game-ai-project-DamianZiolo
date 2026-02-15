@@ -1,5 +1,7 @@
 #include "SteeringBehaviors.h"
 #include "GameAIProg/Movement/SteeringBehaviors/SteeringAgent.h"
+#include "DrawDebugHelpers.h"
+
 
 //SEEK
 //*******
@@ -282,6 +284,42 @@ SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
     FVector2D predictedPos = targetPos + predictedOffset;
 
     Steering.LinearVelocity = Agent.GetPosition() - predictedPos;
+
+    // Predicted position marker where the pursuer is expected to be
+    DrawDebugSphere(
+        Agent.GetWorld(),
+        FVector(predictedPos, 0.f),
+        15.f,
+        12,
+        FColor::Yellow,
+        false,
+        0.f
+    );
+
+    // Line from agent to predicted position
+    DrawDebugLine(
+        Agent.GetWorld(),
+        FVector(Agent.GetPosition(), 0.f),
+        FVector(predictedPos, 0.f),
+        FColor::Red,
+        false,
+        0.f,
+        0,
+        2.f
+    );
+
+    // Evade direction line
+    const FVector2D fleeDir = (Agent.GetPosition() - predictedPos).GetSafeNormal();
+    DrawDebugLine(
+        Agent.GetWorld(),
+        FVector(Agent.GetPosition(), 0.f),
+        FVector(Agent.GetPosition(), 0.f) + FVector(fleeDir, 0.f) * 200.f,
+        FColor::Green,
+        false,
+        0.f,
+        0,
+        2.f
+    );
 
 
     return Steering;
