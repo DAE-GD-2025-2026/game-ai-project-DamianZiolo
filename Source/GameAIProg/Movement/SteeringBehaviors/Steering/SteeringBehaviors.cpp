@@ -349,5 +349,17 @@ SteeringOutput Wander::CalculateSteering(float deltaT, ASteeringAgent& Agent)
     const FVector2D toTarget = wanderTarget - Agent.GetPosition();
     Steering.LinearVelocity = toTarget;
 
+    const float Z = Agent.GetActorLocation().Z;
+
+    DrawDebugSphere(
+        Agent.GetWorld(),
+        FVector(wanderTarget.X, wanderTarget.Y, Z),
+        12.f, 12, FColor::Red,
+        false, 1.f
+    );
+
+
+
+
     return Steering;
 }
