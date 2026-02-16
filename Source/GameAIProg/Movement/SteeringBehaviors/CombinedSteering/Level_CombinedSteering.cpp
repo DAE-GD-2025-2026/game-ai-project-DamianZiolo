@@ -14,7 +14,20 @@ ALevel_CombinedSteering::ALevel_CombinedSteering()
 void ALevel_CombinedSteering::BeginPlay()
 {
 	Super::BeginPlay();
+	pDrunkSteeringAgent = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{0,0,90}, FRotator::ZeroRotator);
+	//Create behaviors
+	pSeekBehaviour = new Seek();
+	pWanderBehaviour = new Wander();
+	
+	// Create blended/combined behavior: 50% seek, 50% wander
+	pCombinedSteeringBehaviours = new BlendedSteering({
+		{ pSeekBehaviour, 0.5f },
+		{ pWanderBehaviour, 0.5f }
+	});
 
+	// Assign combined behavior to the agent
+	pDrunkSteeringAgent->SetSteeringBehavior(pCombinedSteeringBehaviours);
+	
 }
 
 void ALevel_CombinedSteering::BeginDestroy()

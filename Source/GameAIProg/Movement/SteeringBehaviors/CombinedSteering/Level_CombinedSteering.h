@@ -32,5 +32,8 @@ private:
 	bool UseMouseTarget = false;
 	bool CanDebugRender = false;
 
-	
+	ASteeringAgent* pDrunkSteeringAgent;
+	Seek* pSeekBehaviour;
+	Wander* pWanderBehaviour;
+	BlendedSteering* pCombinedSteeringBehaviours;
 };
