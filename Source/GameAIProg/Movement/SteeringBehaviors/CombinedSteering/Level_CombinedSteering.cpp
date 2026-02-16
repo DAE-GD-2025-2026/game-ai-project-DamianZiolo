@@ -26,12 +26,23 @@ void ALevel_CombinedSteering::BeginPlay()
 	});
 
 	// Assign combined behavior to the agent
+	//pDrunkSteeringAgent->SetSteeringBehavior(pSeekBehaviour);
 	pDrunkSteeringAgent->SetSteeringBehavior(pCombinedSteeringBehaviours);
 	
 }
 
 void ALevel_CombinedSteering::BeginDestroy()
 {
+	delete pCombinedSteeringBehaviours;
+	pCombinedSteeringBehaviours = nullptr;
+
+	delete pWanderBehaviour;
+	pWanderBehaviour = nullptr;
+
+	delete pSeekBehaviour;
+	pSeekBehaviour = nullptr;
+
+	
 	Super::BeginDestroy();
 
 }
@@ -41,6 +52,10 @@ void ALevel_CombinedSteering::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	
+	if (pSeekBehaviour)
+	{
+		pSeekBehaviour->SetTarget(MouseTarget);
+	}
 #pragma region UI
 	//UI
 	{
@@ -96,6 +111,36 @@ void ALevel_CombinedSteering::Tick(float DeltaTime)
 	
 		ImGui::Text("Behavior Weights");
 		ImGui::Spacing();
+		
+		if (pCombinedSteeringBehaviours && pSeekBehaviour && pWanderBehaviour)
+		{
+			// Get pointers to weights inside blended steering
+			float* SeekW = pCombinedSteeringBehaviours->GetWeight(pSeekBehaviour);
+			float* WanderW = pCombinedSteeringBehaviours->GetWeight(pWanderBehaviour);
+
+			if (SeekW && WanderW)
+			{
+				// One slider controls both: Wander = 1 - Seek
+				float seekWeight = *SeekW; // current value
+
+				if (ImGui::SliderFloat("Seek vs Wander", &seekWeight, 0.f, 1.f, "Seek %.2f"))
+				{
+					*SeekW = seekWeight;
+					*WanderW = 1.f - seekWeight;
+				}
+
+				// Optional: show numbers
+				ImGui::Text("Seek: %.2f   Wander: %.2f", *SeekW, *WanderW);
+			}
+			else
+			{
+				ImGui::Text("Weights not found (did you add both behaviors to BlendedSteering?)");
+			}
+		}
+		else
+		{
+			ImGui::Text("Blended/Seek/Wander not initialized yet");
+		}
 
 
 		// ImGuiHelpers::ImGuiSliderFloatWithSetter("Seek",
