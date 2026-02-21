@@ -143,8 +143,13 @@ FVector2D Flock::GetAverageNeighborPos() const
 	FVector2D avgPosition = FVector2D::ZeroVector;
 	if (NrOfNeighbors == 0) return avgPosition;
 	
- // TODO: Implement
-	
+	//Sum all neigbour positions
+	for (auto agentNumber : NrOfNeighbors )
+	{
+		avgPosition += Neighbors[agentNumber]->GetPosition();
+	}
+	//Devide by count
+	avgPosition /= NrOfNeighbors;
 	return avgPosition;
 }
 
