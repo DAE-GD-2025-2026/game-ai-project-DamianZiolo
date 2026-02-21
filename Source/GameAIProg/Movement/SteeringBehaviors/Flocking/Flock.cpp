@@ -17,6 +17,9 @@ Flock::Flock(
 	Agents.SetNum(FlockSize);
 
  // TODO: initialize the flock and the memory pool
+	Neighbors.SetNum(FlockSize);
+	NrOfNeighbors = 0;
+	
 }
 
 Flock::~Flock()
@@ -97,14 +100,49 @@ void Flock::RenderNeighborhood()
 #ifndef GAMEAI_USE_SPACE_PARTITIONING
 void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 {
- // TODO: Implement
+	// TODO: Implement
+	NrOfNeighbors = 0;
+	
+	//Squared radius for cheaper distance check later
+	const float radiusSq = NeighborhoodRadius * NeighborhoodRadius;
+	const FVector2D agentPos = pAgent->GetPosition();
+	
+	//Check for all flock agents
+	for (ASteeringAgent* const pAgent : Agents)
+	{
+		//if Agent is not valid or it's ,,self" agent skip iteration
+		if (!IsValid(pAgent) || pAgent == pAgent)
+		{
+			continue;
+		}
+		//Check Distance
+		const FVector2D toAgent = pAgent->GetPosition() - agentPos;
+		const float distanceSq = toAgent.SizeSquared();
+		
+		if (distanceSq <= radiusSq)
+		{
+			//No push back, store in memory pol and check to not write out of bounds
+			if (NrOfNeighbors < Neighbors.Num())
+			{
+				Neighbors[NrOfNeighbors] = pAgent;
+				NrOfNeighbors++;
+			}
+		}
+		
+		
+		
+		
+	}
+	
 }
 #endif
 
 FVector2D Flock::GetAverageNeighborPos() const
 {
+	//if no neighbour, no need to calculate the rest
 	FVector2D avgPosition = FVector2D::ZeroVector;
-
+	if (NrOfNeighbors == 0) return avgPosition;
+	
  // TODO: Implement
 	
 	return avgPosition;
