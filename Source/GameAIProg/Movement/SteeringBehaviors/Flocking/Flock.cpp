@@ -20,6 +20,28 @@ Flock::Flock(
 	Neighbors.SetNum(FlockSize);
 	NrOfNeighbors = 0;
 	
+	for (int i = 0; i < FlockSize; ++i)
+	{
+		// simple random-ish spread so they don't start on the same spot
+		const float x = FMath::FRandRange(-WorldSize * 0.3f, WorldSize * 0.3f);
+		const float y = FMath::FRandRange(-WorldSize * 0.3f, WorldSize * 0.3f);
+
+		Agents[i] = pWorld->SpawnActor<ASteeringAgent>(
+			AgentClass,
+			FVector{ x, y, 90.f },
+			FRotator::ZeroRotator
+		);
+	}
+
+	//Create a cohesion behavior that can access THIS flock
+	auto* pCohesion = new Cohesion(this);
+
+	//Assign cohesion to all agents (test)
+	for (ASteeringAgent* a : Agents)
+	{
+		if (IsValid(a))
+			a->SetSteeringBehavior(pCohesion);
+	}
 }
 
 Flock::~Flock()
@@ -38,7 +60,7 @@ void Flock::Tick(float DeltaTime)
 		
 		RegisterNeighbors(pAgent);
 		//Later: SteeringBehaviours will read Neighbours[0 to NrOfNeigbhours-1] 
-		
+		pAgent->Tick(DeltaTime);
 	}
 	
  // TODO: update the flock
@@ -120,30 +142,23 @@ void Flock::RegisterNeighbors(ASteeringAgent* const pAgent)
 	const FVector2D agentPos = pAgent->GetPosition();
 	
 	//Check for all flock agents
-	for (ASteeringAgent* const pAgent : Agents)
+	for (ASteeringAgent* const pOther : Agents)
 	{
-		//if Agent is not valid or it's ,,self" agent skip iteration
-		if (!IsValid(pAgent) || pAgent == pAgent)
-		{
+		// skip invalid and skip self
+		if (!IsValid(pOther) || pOther == pAgent)
 			continue;
-		}
-		//Check Distance
-		const FVector2D toAgent = pAgent->GetPosition() - agentPos;
-		const float distanceSq = toAgent.SizeSquared();
-		
-		if (distanceSq <= radiusSq)
+
+		const FVector2D toOther = pOther->GetPosition() - agentPos;
+		const float distSq = toOther.SizeSquared();
+
+		if (distSq <= radiusSq)
 		{
-			//No push back, store in memory pol and check to not write out of bounds
 			if (NrOfNeighbors < Neighbors.Num())
 			{
-				Neighbors[NrOfNeighbors] = pAgent;
+				Neighbors[NrOfNeighbors] = pOther;
 				NrOfNeighbors++;
 			}
 		}
-		
-		
-		
-		
 	}
 	
 }
@@ -156,7 +171,7 @@ FVector2D Flock::GetAverageNeighborPos() const
 	if (NrOfNeighbors == 0) return avgPosition;
 	
 	//Sum all neigbour positions
-	for (auto agentNumber : NrOfNeighbors )
+	for (int agentNumber{0}; agentNumber<NrOfNeighbors;agentNumber++)
 	{
 		avgPosition += Neighbors[agentNumber]->GetPosition();
 	}
@@ -169,9 +184,9 @@ FVector2D Flock::GetAverageNeighborVelocity() const
 {
 	FVector2D avgVelocity = FVector2D::ZeroVector;
 	if (NrOfNeighbors == 0) return avgVelocity;
-	for (auto agentNumber : NrOfNeighbors )
+	for (int agentNumber{0}; agentNumber<NrOfNeighbors; agentNumber++ )
 	{
-		avgVelocity += Neighbors[agentNumber]->GetVelocity();
+		avgVelocity = avgVelocity + Neighbors[agentNumber]->GetLinearVelocity();
 	}
 	avgVelocity /= NrOfNeighbors;
 	return avgVelocity;
