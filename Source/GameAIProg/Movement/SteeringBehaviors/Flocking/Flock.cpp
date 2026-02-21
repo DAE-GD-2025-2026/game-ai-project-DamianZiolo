@@ -29,6 +29,18 @@ Flock::~Flock()
 
 void Flock::Tick(float DeltaTime)
 {
+	for (auto pAgent : Agents)
+	{
+		if (!IsValid(pAgent))
+		{
+			continue;
+		}
+		
+		RegisterNeighbors(pAgent);
+		//Later: SteeringBehaviours will read Neighbours[0 to NrOfNeigbhours-1] 
+		
+	}
+	
  // TODO: update the flock
  // TODO: for every agent:
   // TODO: register the neighbors for this agent (-> fill the memory pool with the neighbors for the currently evaluated agent)
