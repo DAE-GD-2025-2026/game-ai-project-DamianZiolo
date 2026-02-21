@@ -29,6 +29,13 @@ void ALevel_CombinedSteering::BeginPlay()
 	//pDrunkSteeringAgent->SetSteeringBehavior(pSeekBehaviour);
 	pDrunkSteeringAgent->SetSteeringBehavior(pCombinedSteeringBehaviours);
 	
+	pEvadingAgent = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{0,0,90}, FRotator::ZeroRotator);
+	pEvadeBehaviour = new Evade();
+	
+	pPrioritySteeringBehaviours = new PrioritySteering({
+	pEvadeBehaviour,pWanderBehaviour});
+	pEvadingAgent->SetSteeringBehavior(pPrioritySteeringBehaviours);
+	
 }
 
 void ALevel_CombinedSteering::BeginDestroy()
@@ -56,6 +63,20 @@ void ALevel_CombinedSteering::Tick(float DeltaTime)
 	{
 		pSeekBehaviour->SetTarget(MouseTarget);
 	}
+	
+	if (pEvadeBehaviour && pDrunkSteeringAgent)
+	{
+		FTargetData EvadeTarget;
+		EvadeTarget.Position = pDrunkSteeringAgent->GetPosition();
+		EvadeTarget.Orientation = pDrunkSteeringAgent->GetRotation();
+		EvadeTarget.LinearVelocity = pDrunkSteeringAgent->GetLinearVelocity();
+		EvadeTarget.AngularVelocity = pDrunkSteeringAgent->GetAngularVelocity();
+		pEvadeBehaviour->SetTarget(EvadeTarget);
+	}
+	
+
+	
+	
 #pragma region UI
 	//UI
 	{

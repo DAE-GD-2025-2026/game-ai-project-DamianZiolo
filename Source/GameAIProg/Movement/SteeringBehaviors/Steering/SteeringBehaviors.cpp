@@ -266,7 +266,7 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
     SteeringOutput Steering{};
-
+    const float EvadeRadius{500.f};
     FVector2D pursuerPosition{ Agent.GetPosition() };
     float pursuerSpeed{ Agent.GetMaxLinearSpeed() };
     FVector2D targetPos{ Target.Position };
@@ -274,6 +274,16 @@ SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
     FVector2D toTarget{ targetPos - pursuerPosition };
     float distance = toTarget.Size();
+    
+    if (distance > EvadeRadius)
+    {
+        Steering.IsValid = false;
+        Steering.LinearVelocity = FVector2D::ZeroVector;
+        Steering.AngularVelocity = 0.f;
+        return Steering;
+    }
+    Steering.IsValid = true;
+    
     float timeToReach = 0;
     if (pursuerSpeed != 0)
     {

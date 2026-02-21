@@ -36,4 +36,8 @@ private:
 	Seek* pSeekBehaviour;
 	Wander* pWanderBehaviour;
 	BlendedSteering* pCombinedSteeringBehaviours;
+	
+	ASteeringAgent* pEvadingAgent;
+	PrioritySteering* pPrioritySteeringBehaviours;
+	Evade* pEvadeBehaviour;
 };
