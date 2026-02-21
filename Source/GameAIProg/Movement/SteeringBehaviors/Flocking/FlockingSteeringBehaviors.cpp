@@ -71,3 +71,20 @@ SteeringOutput Separation::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 
 //*************************
 //VELOCITY MATCH (FLOCKING)
+SteeringOutput VelocityMatch::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
+{
+	SteeringOutput Steering{};
+	if (pFlock == nullptr) return Steering;
+	
+	if (pFlock->GetNrOfNeighbors() == 0)
+	{
+		Steering.LinearVelocity = FVector2D::ZeroVector;
+		return Steering;
+	}
+	
+	FVector2D avgVelocity = pFlock->GetAverageNeighborVelocity();
+	
+	avgVelocity = avgVelocity.GetClampedToMaxSize(pAgent.GetMaxLinearSpeed());
+	Steering.LinearVelocity = avgVelocity;
+	return Steering;
+}

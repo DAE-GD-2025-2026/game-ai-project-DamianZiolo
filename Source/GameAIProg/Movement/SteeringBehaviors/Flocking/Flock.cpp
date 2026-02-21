@@ -20,6 +20,31 @@ Flock::Flock(
 	Neighbors.SetNum(FlockSize);
 	NrOfNeighbors = 0;
 	
+	pCohesionBehavior = std::make_unique<Cohesion>(this);
+	pSeparationBehavior = std::make_unique<Separation>(this);
+	pVelMatchBehavior = std::make_unique<VelocityMatch>(this);
+	pSeekBehavior = std::make_unique<Seek>();
+	pWanderBehavior = std::make_unique<Wander>();
+	pBlendedSteering = std::make_unique<BlendedSteering>(std::vector<BlendedSteering::WeightedBehavior>{
+	{ pSeparationBehavior.get(),  1.5f },  
+	{ pCohesionBehavior.get(),    0.6f },  
+	{ pVelMatchBehavior.get(),    0.8f },  
+	{ pWanderBehavior.get(),      0.4f },  
+
+});
+	pAgentToEvade->SetSteeringBehavior(pSeekBehavior.get());
+	
+
+	if (pAgentToEvade)
+	{
+		pEvadeBehavior = std::make_unique<Evade>();
+
+		 //evade first, then blended flocking
+		pPrioritySteering = std::make_unique<PrioritySteering>(
+			std::vector<ISteeringBehavior*>{ pEvadeBehavior.get(), pBlendedSteering.get() }
+		);
+	}
+	
 	for (int i = 0; i < FlockSize; ++i)
 	{
 		// simple random-ish spread so they don't start on the same spot
@@ -34,23 +59,41 @@ Flock::Flock(
 	}
 
 	//Create a cohesion behavior that can access THIS flock
-	auto* pCohesion = new Cohesion(this);
-	auto* pSeparation = new Separation(this);
+
 	//Assign cohesion to all agents (test)
 	for (ASteeringAgent* a : Agents)
 	{
-		if (IsValid(a))
-			a->SetSteeringBehavior(pSeparation);
+		if (!IsValid(a))
+		{
+			continue;
+		}
+			if (pPrioritySteering)
+				a->SetSteeringBehavior(pPrioritySteering.get());
+			else
+				a->SetSteeringBehavior(pBlendedSteering.get());
 	}
+	
+	
+	
 }
 
 Flock::~Flock()
 {
- // TODO: Cleanup any additional data
+ 
+	// TODO: Cleanup any additional data
 }
 
 void Flock::Tick(float DeltaTime)
 {
+	if (pEvadeBehavior && IsValid(pAgentToEvade))
+	{
+		FTargetData targetToEvade{};
+		targetToEvade.Position        = pAgentToEvade->GetPosition();
+		targetToEvade.Orientation     = pAgentToEvade->GetRotation();
+		targetToEvade.LinearVelocity  = pAgentToEvade->GetLinearVelocity();
+		targetToEvade.AngularVelocity = pAgentToEvade->GetAngularVelocity();
+		pEvadeBehavior->SetTarget(targetToEvade);
+	}
 	for (auto pAgent : Agents)
 	{
 		if (!IsValid(pAgent))
@@ -119,6 +162,42 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 		ImGui::Spacing();
 
   // TODO: implement ImGUI sliders for steering behavior weights here
+		if (pBlendedSteering)
+		{
+			// get pointers to weights
+			float* wSep  = pBlendedSteering->GetWeight(pSeparationBehavior.get());
+			float* wCoh  = pBlendedSteering->GetWeight(pCohesionBehavior.get());
+			float* wAli  = pBlendedSteering->GetWeight(pVelMatchBehavior.get());
+			float* wWan  = pBlendedSteering->GetWeight(pWanderBehavior.get());
+
+			// local copies
+			if (wSep)
+			{
+				float tmp = *wSep;
+				if (ImGui::SliderFloat("Separation", &tmp, 0.f, 3.f, "%.2f"))
+					*wSep = tmp;
+			}
+			if (wCoh)
+			{
+				float tmp = *wCoh;
+				if (ImGui::SliderFloat("Cohesion", &tmp, 0.f, 3.f, "%.2f"))
+					*wCoh = tmp;
+			}
+			if (wAli)
+			{
+				float tmp = *wAli;
+				if (ImGui::SliderFloat("Alignment", &tmp, 0.f, 3.f, "%.2f"))
+					*wAli = tmp;
+			}
+			if (wWan)
+			{
+				float tmp = *wWan;
+				if (ImGui::SliderFloat("Wander", &tmp, 0.f, 3.f, "%.2f"))
+					*wWan = tmp;
+			}
+		}
+		
+		
 		//End
 		ImGui::End();
 	}
@@ -194,6 +273,6 @@ FVector2D Flock::GetAverageNeighborVelocity() const
 
 void Flock::SetTarget_Seek(FSteeringParams const& Target)
 {
- // TODO: Implement
+ pSeekBehavior->SetTarget(Target);
 }
 
