@@ -35,12 +35,12 @@ Flock::Flock(
 
 	//Create a cohesion behavior that can access THIS flock
 	auto* pCohesion = new Cohesion(this);
-
+	auto* pSeparation = new Separation(this);
 	//Assign cohesion to all agents (test)
 	for (ASteeringAgent* a : Agents)
 	{
 		if (IsValid(a))
-			a->SetSteeringBehavior(pCohesion);
+			a->SetSteeringBehavior(pSeparation);
 	}
 }
 
