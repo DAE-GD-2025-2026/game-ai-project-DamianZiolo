@@ -156,9 +156,12 @@ FVector2D Flock::GetAverageNeighborPos() const
 FVector2D Flock::GetAverageNeighborVelocity() const
 {
 	FVector2D avgVelocity = FVector2D::ZeroVector;
-
- // TODO: Implement
-
+	if (NrOfNeighbors == 0) return avgVelocity;
+	for (auto agentNumber : NrOfNeighbors )
+	{
+		avgVelocity += Neighbors[agentNumber]->GetVelocity();
+	}
+	avgVelocity /= NrOfNeighbors;
 	return avgVelocity;
 }
 
