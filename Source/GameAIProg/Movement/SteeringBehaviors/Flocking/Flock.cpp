@@ -1,7 +1,8 @@
 #include "Flock.h"
 #include "FlockingSteeringBehaviors.h"
+#include "Movement/SteeringBehaviors/SpacePartitioning/SpacePartitioning.h"
 #include "Shared/ImGuiHelpers.h"
-
+#include "GameAIProg/Shared/WorldTrimVolume.h"
 
 Flock::Flock(
 	UWorld* pWorld,
@@ -9,12 +10,16 @@ Flock::Flock(
 	int FlockSize,
 	float WorldSize,
 	ASteeringAgent* const pAgentToEvade,
-	bool bTrimWorld)
+	bool bTrimWorld,
+	AWorldTrimVolume* pTrimWorld
+	)
 	: pWorld{pWorld}
 	, FlockSize{ FlockSize }
 	, pAgentToEvade{pAgentToEvade}
+	, pTrimWorld(pTrimWorld)
 {
 	Agents.SetNum(FlockSize);
+	pCellSpace= std::make_unique<CellSpace>(pWorld,pTrimWorld->GetTrimWorldSize(),pTrimWorld->GetTrimWorldSize(),5,5,FlockSize);
 
  // TODO: initialize the flock and the memory pool
 	Neighbors.SetNum(FlockSize);

@@ -32,7 +32,8 @@ void ALevel_Flocking::BeginPlay()
 			FlockSize,
 			TrimWorld->GetTrimWorldSize(),
 			pAgentToEvade,
-			true)
+			true,
+			TrimWorld)
 			);
 }
 

@@ -12,6 +12,8 @@
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
 #include "../SpacePartitioning/SpacePartitioning.h"
 #endif
+class AWorldTrimVolume;
+class CellSpace;
 
 class Flock final
 {
@@ -22,7 +24,9 @@ public:
 	int FlockSize = 10, 
 	float WorldSize = 100.f, 
 	ASteeringAgent* const pAgentToEvade = nullptr, 
-	bool bTrimWorld = false);
+	bool bTrimWorld = false,
+	AWorldTrimVolume* pTrimWorld = nullptr
+	);
 
 	~Flock();
 
@@ -47,7 +51,7 @@ public:
 private:
 	// For debug rendering purposes
 	UWorld* pWorld{nullptr};
-	
+	AWorldTrimVolume* pTrimWorld{nullptr};
 	int FlockSize{0};
 	TArray<ASteeringAgent*> Agents{};
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
@@ -74,6 +78,9 @@ private:
 	std::unique_ptr<BlendedSteering> pBlendedSteering{};
 	std::unique_ptr<PrioritySteering> pPrioritySteering{};
 
+	//Cellspace
+	std::unique_ptr<CellSpace> pCellSpace{};
+	
 	// UI and rendering
 	bool DebugRenderSteering{false};
 	bool DebugRenderNeighborhood{true};
