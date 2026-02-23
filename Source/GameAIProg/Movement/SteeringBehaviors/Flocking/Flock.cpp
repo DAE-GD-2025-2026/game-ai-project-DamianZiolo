@@ -64,6 +64,11 @@ Flock::Flock(
 			params
 		);
 		Agents[i]->SetActorTickEnabled(false);
+		
+		if (IsValid(Agents[i]))
+		{
+			pCellSpace->AddAgent(*Agents[i]);
+		}
 	}
 
 	//Create a cohesion behavior that can access THIS flock
@@ -108,8 +113,16 @@ void Flock::Tick(float DeltaTime)
 		{
 			continue;
 		}
+		if (!mUseSpacialPartitioning)
+		{
+			RegisterNeighbors(pAgent);
+		}
+		else
+		{
+			//TODO: RegisterNeighbors only on cell near you
+			pCellSpace->RegisterNeighbors(*pAgent,NeighborhoodRadius);
+		}
 		
-		RegisterNeighbors(pAgent);
 		//Later: SteeringBehaviours will read Neighbours[0 to NrOfNeigbhours-1] 
 		pAgent->Tick(DeltaTime);
 	}

@@ -54,6 +54,7 @@ private:
 	AWorldTrimVolume* pTrimWorld{nullptr};
 	int FlockSize{0};
 	TArray<ASteeringAgent*> Agents{};
+	bool mUseSpacialPartitioning{true};
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
 	//std::unique_ptr<CellSpace> pPartitionedSpace{};
 	//int NrOfCellsX{ 10 };
