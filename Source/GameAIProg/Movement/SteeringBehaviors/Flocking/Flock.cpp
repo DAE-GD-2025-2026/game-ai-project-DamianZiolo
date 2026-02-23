@@ -50,12 +50,15 @@ Flock::Flock(
 		// simple random-ish spread so they don't start on the same spot
 		const float x = FMath::FRandRange(-WorldSize * 0.3f, WorldSize * 0.3f);
 		const float y = FMath::FRandRange(-WorldSize * 0.3f, WorldSize * 0.3f);
-
+		FActorSpawnParameters params{};
+		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		Agents[i] = pWorld->SpawnActor<ASteeringAgent>(
 			AgentClass,
 			FVector{ x, y, 90.f },
-			FRotator::ZeroRotator
+			FRotator::ZeroRotator,
+			params
 		);
+		Agents[i]->SetActorTickEnabled(false);
 	}
 
 	//Create a cohesion behavior that can access THIS flock
