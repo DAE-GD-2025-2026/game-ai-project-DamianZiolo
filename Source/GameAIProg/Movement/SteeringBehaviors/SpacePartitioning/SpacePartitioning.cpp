@@ -1,4 +1,5 @@
 #include "SpacePartitioning.h"
+#include "DrawDebugHelpers.h"
 
 // --- Cell ---
 // ------------
@@ -37,7 +38,7 @@ CellSpace::CellSpace(UWorld* pWorld, float Width, float Height, int Rows, int Co
 	, NrOfNeighbors{0}
 {
 	Neighbors.SetNum(MaxEntities);
-	
+	CellOrigin = FVector2D(-Width * 0.5f, -Height * 0.5f);
 	//calculate bounds of a cell
 	CellWidth = Width / Cols;
 	CellHeight = Height / Rows;
@@ -46,7 +47,9 @@ CellSpace::CellSpace(UWorld* pWorld, float Width, float Height, int Rows, int Co
 	{
 		for (int Col = 0; Col < Cols; ++Col)
 		{
-			Cells.emplace_back(Cell(CellWidth * Col, CellHeight* Row, CellWidth,CellHeight));
+			const float left = CellOrigin.X + CellWidth * Col;
+			const float bottom = CellOrigin.Y + CellHeight * Row;
+			Cells.emplace_back(Cell(left, bottom, CellWidth, CellHeight));
 		}
 	}
 }
@@ -77,10 +80,34 @@ void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 	//TODO Use the calculated index for oldPos and currentPos for this
 	int oldIndex = PositionToIndex(OldPos);
 	int newIndex = PositionToIndex(Agent.GetPosition());
-	if (oldIndex != newIndex)
+
+	//if agent is in the same cell, don't updateit
+	if (oldIndex == newIndex)
+		return;
+
+	//if new position is outside of the grid, warning
+	if (newIndex < 0 || newIndex >= static_cast<int>(Cells.size()))
 	{
-		//Remove from the old cell and add to the new cell
+		const FVector2D pos = Agent.GetPosition();
+		UE_LOG(LogTemp, Warning,
+			TEXT("CellSpace::UpdateAgentCell - newIndex out of bounds. newIndex=%d pos=(%.2f,%.2f)"),
+			newIndex, pos.X, pos.Y);
+		return;
 	}
+
+	//remove from old cell
+	if (oldIndex >= 0 && oldIndex < static_cast<int>(Cells.size()))
+	{
+		Cells[oldIndex].Agents.remove(&Agent);
+	}
+
+	//ad to new cell
+	Cells[newIndex].Agents.emplace_back(&Agent);
+
+
+
+
+
 	
 }
 
@@ -88,6 +115,53 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 {
 	// TODO Register the neighbors for the provided agent
 	// TODO Only check the cells that are within the radius of the neighborhood
+
+	// 1) Reset memory pool counter (no clear/push_back)
+	NrOfNeighbors = 0;
+
+	const FVector2D center = Agent.GetPosition();
+	const float r = QueryRadius;
+	const float rSq = r * r;
+
+	// 2) Build query AABB (square around the query circle)
+	FRect queryRect;
+	queryRect.Min = FVector2D(center.X - r, center.Y - r);
+	queryRect.Max = FVector2D(center.X + r, center.Y + r);
+
+	// 3) Iterate cells, but only consider those whose bounding box overlaps the query rect
+	for (Cell& cell : Cells)
+	{
+		// Skip cells that are definitely too far (no overlap)
+		if (!DoRectsOverlap(cell.BoundingBox, queryRect))
+			continue;
+
+		// 4) Cell overlaps -> check actual agents inside this cell
+		for (ASteeringAgent* other : cell.Agents)
+		{
+			if (!IsValid(other) || other == &Agent)
+				continue;
+
+			const FVector2D toOther = other->GetPosition() - center;
+			const float distSq = toOther.SizeSquared();
+
+			// 5) True neighborhood test (circle)
+			if (distSq <= rSq)
+			{
+				// memory pool write (avoid out of bounds)
+				if (NrOfNeighbors < Neighbors.Num())
+				{
+					Neighbors[NrOfNeighbors] = other;
+					++NrOfNeighbors;
+				}
+				else
+				{
+					// pool full then stop early
+					return;
+				}
+			}
+		}
+	}
+
 }
 
 void CellSpace::EmptyCells()
@@ -98,7 +172,46 @@ void CellSpace::EmptyCells()
 
 void CellSpace::RenderCells() const
 {
-	// TODO Render the cells with the number of agents inside of it
+	if (!pWorld) return;
+
+	// Draw each cell as a rectangle and print agent count inside
+	for (int i = 0; i < static_cast<int>(Cells.size()); ++i)
+	{
+		const Cell& cell = Cells[i];
+
+		const FVector2D min = cell.BoundingBox.Min;
+		const FVector2D max = cell.BoundingBox.Max;
+
+		// Z height so it's visible above the ground (tweak if needed)
+		const float Z = 90.f;
+
+		// Four corners of the cell rectangle
+		const FVector p0(min.X, min.Y, Z);
+		const FVector p1(max.X, min.Y, Z);
+		const FVector p2(max.X, max.Y, Z);
+		const FVector p3(min.X, max.Y, Z);
+
+		// Draw rectangle outline
+		DrawDebugLine(pWorld, p0, p1, FColor::Cyan, false, 0.f, 0, 1.f);
+		DrawDebugLine(pWorld, p1, p2, FColor::Cyan, false, 0.f, 0, 1.f);
+		DrawDebugLine(pWorld, p2, p3, FColor::Cyan, false, 0.f, 0, 1.f);
+		DrawDebugLine(pWorld, p3, p0, FColor::Cyan, false, 0.f, 0, 1.f);
+
+		// Draw agent count text in the center of the cell
+		const FVector2D center2D = (min + max) * 0.5f;
+		const FVector center3D(center2D.X, center2D.Y, Z);
+
+		const int count = static_cast<int>(cell.Agents.size());
+		DrawDebugString(
+			pWorld,
+			center3D,
+			FString::Printf(TEXT("%d"), count),
+			nullptr,
+			FColor::White,
+			0.f,   // lifetime (0 = one frame)
+			false  // draw shadow
+		);
+	}
 }
 
 int CellSpace::PositionToIndex(FVector2D const& Pos) const

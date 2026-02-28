@@ -37,13 +37,11 @@ Flock::Flock(
 	{ pWanderBehavior.get(),      0.4f },  
 
 });
-	pAgentToEvade->SetSteeringBehavior(pSeekBehavior.get());
 	
-
 	if (pAgentToEvade)
 	{
 		pEvadeBehavior = std::make_unique<Evade>();
-
+		pAgentToEvade->SetSteeringBehavior(pSeekBehavior.get());
 		 //evade first, then blended flocking
 		pPrioritySteering = std::make_unique<PrioritySteering>(
 			std::vector<ISteeringBehavior*>{ pEvadeBehavior.get(), pBlendedSteering.get() }
@@ -53,18 +51,20 @@ Flock::Flock(
 	for (int i = 0; i < FlockSize; ++i)
 	{
 		// simple random-ish spread so they don't start on the same spot
-		const float x = FMath::FRandRange(-WorldSize * 0.3f, WorldSize * 0.3f);
-		const float y = FMath::FRandRange(-WorldSize * 0.3f, WorldSize * 0.3f);
+		const float half = pTrimWorld->GetTrimWorldSize() * 0.5f;
+		const float x = FMath::FRandRange(-half, half);
+		const float y = FMath::FRandRange(-half, half);
+
 		FActorSpawnParameters params{};
 		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
 		Agents[i] = pWorld->SpawnActor<ASteeringAgent>(
 			AgentClass,
 			FVector{ x, y, 90.f },
 			FRotator::ZeroRotator,
 			params
 		);
-		Agents[i]->SetActorTickEnabled(false);
-		
+
 		if (IsValid(Agents[i]))
 		{
 			pCellSpace->AddAgent(*Agents[i]);
