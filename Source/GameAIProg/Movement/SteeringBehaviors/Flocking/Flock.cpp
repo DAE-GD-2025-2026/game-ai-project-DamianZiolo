@@ -111,9 +111,23 @@ void Flock::Tick(float DeltaTime)
 	if (bDIsDown && !bDWasDown)
 	{
 		mUseSpacialPartitioning = !mUseSpacialPartitioning;
+
 		UE_LOG(LogTemp, Warning, TEXT("Spatial Partitioning: %s"),
 			mUseSpacialPartitioning ? TEXT("ON") : TEXT("OFF"));
+
+		// (Opcjonalnie, ale polecam) - po przełączeniu trybu przebuduj komórki,
+		// żeby nie trzymały starych wpisów / duplikatów.
+		if (mUseSpacialPartitioning && pCellSpace)
+		{
+			pCellSpace->EmptyCells();
+			for (ASteeringAgent* a : Agents)
+			{
+				if (IsValid(a))
+					pCellSpace->AddAgent(*a);
+			}
+		}
 	}
+
 	bDWasDown = bDIsDown;
 
 	// =========================
@@ -145,23 +159,23 @@ void Flock::Tick(float DeltaTime)
 		if (!IsValid(pAgent))
 			continue;
 
-		// OLD POS BEFORE movement (world XY)
-		const FVector2D oldPos2D = pAgent->GetPosition();
+		// -------------------------
+		// 3.0) Save OLD POS (world XY) BEFORE any movement
+		// -------------------------
+		const FVector oldLoc3D = pAgent->GetActorLocation();
+		const FVector2D oldPos2D(oldLoc3D.X, oldLoc3D.Y);
 
 		// -------------------------
 		// 3.1) Register neighbors for THIS agent
-		//     (fills Flock::Neighbors + NrOfNeighbors)
 		// -------------------------
 		if (!mUseSpacialPartitioning)
 		{
-			RegisterNeighbors(pAgent); // brute force -> fills Neighbors + NrOfNeighbors
+			RegisterNeighbors(pAgent); // brute-force
 		}
 		else if (pCellSpace)
 		{
-			// cellspace computes its own pool
 			pCellSpace->RegisterNeighbors(*pAgent, NeighborhoodRadius);
 
-			// copy to Flock pool so your behaviors (Cohesion etc.) see it
 			NrOfNeighbors = pCellSpace->GetNrOfNeighbors();
 			const TArray<ASteeringAgent*>& cellNeighbors = pCellSpace->GetNeighbors();
 
@@ -173,25 +187,25 @@ void Flock::Tick(float DeltaTime)
 		}
 		else
 		{
-			// partitioning ON but no cellspace
 			NrOfNeighbors = 0;
 		}
 
 		// -------------------------
-		// 3.2) Steering + movement
+		// 3.2) Steering + movement (manual tick)
 		// -------------------------
 		pAgent->Tick(DeltaTime);
 
 		// -------------------------
-		// 3.3) Trim to world bounds (keep Z)
+		// 3.3) Trim AFTER movement (keep Z)
 		// -------------------------
-		FVector loc = pAgent->GetActorLocation();
-		loc.X = FMath::Clamp(loc.X, -half, half);
-		loc.Y = FMath::Clamp(loc.Y, -half, half);
-		pAgent->SetActorLocation(loc);
+		FVector newLoc3D = pAgent->GetActorLocation();
+		newLoc3D.X = FMath::Clamp(newLoc3D.X, -half, half);
+		newLoc3D.Y = FMath::Clamp(newLoc3D.Y, -half, half);
+		pAgent->SetActorLocation(newLoc3D);
 
 		// -------------------------
 		// 3.4) Update CellSpace membership AFTER movement+trim
+		//      (OldPos musi być sprzed ticka!)
 		// -------------------------
 		if (mUseSpacialPartitioning && pCellSpace)
 		{
