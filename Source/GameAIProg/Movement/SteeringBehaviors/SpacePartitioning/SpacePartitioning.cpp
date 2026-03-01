@@ -1,6 +1,12 @@
 #include "SpacePartitioning.h"
 #include "DrawDebugHelpers.h"
 
+static FVector2D GetAgentPos2D_World(const ASteeringAgent& Agent)
+{
+	const FVector L = Agent.GetActorLocation();
+	return FVector2D(L.X, L.Y);
+}
+
 // --- Cell ---
 // ------------
 Cell::Cell(float Left, float Bottom, float Width, float Height)
@@ -56,112 +62,84 @@ CellSpace::CellSpace(UWorld* pWorld, float Width, float Height, int Rows, int Co
 
 void CellSpace::AddAgent(ASteeringAgent& Agent)
 {
-	const FVector2D agentPos = Agent.GetPosition();
-
-	// Convert position -> cell index
+	const FVector2D agentPos = GetAgentPos2D_World(Agent);
 	const int idx = PositionToIndex(agentPos);
 
-	// If out of bounds, PositionToIndex should return -1
-	if (idx < 0 || idx >= static_cast<int>(Cells.size()))
+	if (idx < 0 || idx >= (int)Cells.size())
 	{
-		UE_LOG(LogTemp, Error, TEXT("CellSpace::AddAgent - Agent out of CellSpace bounds. Pos=(%.2f, %.2f), idx=%d, Cells=%d"),
-			agentPos.X, agentPos.Y, idx, static_cast<int>(Cells.size()));
-		//warn in editor but not crash in shipping
-		ensureMsgf(false, TEXT("Agent position is outside CellSpace bounds."));
+		UE_LOG(LogTemp, Error, TEXT("CellSpace::AddAgent OOB idx=%d pos=(%.1f,%.1f)"), idx, agentPos.X, agentPos.Y);
 		return;
 	}
-	// Add agent pointer to that cell
-	Cells[idx].Agents.push_back(&Agent);
+
+	auto& list = Cells[idx].Agents;
+
+	// guard na duplikaty
+	if (std::find(list.begin(), list.end(), &Agent) == list.end())
+	{
+		list.push_back(&Agent);
+	}
 }
 
 void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 {
-	//TODO Check if the agent needs to be moved to another cell.
-	//TODO Use the calculated index for oldPos and currentPos for this
-	int oldIndex = PositionToIndex(OldPos);
-	int newIndex = PositionToIndex(Agent.GetPosition());
+	const FVector2D newPos = GetAgentPos2D_World(Agent);
 
-	//if agent is in the same cell, don't updateit
+	const int oldIndex = PositionToIndex(OldPos);
+	const int newIndex = PositionToIndex(newPos);
+
+	UE_LOG(LogTemp, Warning, TEXT("IDX old=%d new=%d | OldPos=(%.1f,%.1f) NewPos=(%.1f,%.1f)"),
+		oldIndex, newIndex, OldPos.X, OldPos.Y, newPos.X, newPos.Y);
+
 	if (oldIndex == newIndex)
 		return;
 
-	//if new position is outside of the grid, warning
-	if (newIndex < 0 || newIndex >= static_cast<int>(Cells.size()))
-	{
-		const FVector2D pos = Agent.GetPosition();
-		UE_LOG(LogTemp, Warning,
-			TEXT("CellSpace::UpdateAgentCell - newIndex out of bounds. newIndex=%d pos=(%.2f,%.2f)"),
-			newIndex, pos.X, pos.Y);
-		return;
-	}
+	UE_LOG(LogTemp, Warning, TEXT("MOVE %d -> %d"), oldIndex, newIndex);
 
-	//remove from old cell
-	if (oldIndex >= 0 && oldIndex < static_cast<int>(Cells.size()))
-	{
+	if (oldIndex >= 0 && oldIndex < (int)Cells.size())
 		Cells[oldIndex].Agents.remove(&Agent);
+
+	if (newIndex >= 0 && newIndex < (int)Cells.size())
+	{
+		auto& list = Cells[newIndex].Agents;
+		if (std::find(list.begin(), list.end(), &Agent) == list.end())
+			list.push_back(&Agent);
 	}
-
-	//ad to new cell
-	Cells[newIndex].Agents.emplace_back(&Agent);
-
-
-
-
-
-	
 }
 
 void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 {
-	// TODO Register the neighbors for the provided agent
-	// TODO Only check the cells that are within the radius of the neighborhood
-
-	// 1) Reset memory pool counter (no clear/push_back)
 	NrOfNeighbors = 0;
 
-	const FVector2D center = Agent.GetPosition();
+	const FVector2D center = GetAgentPos2D_World(Agent);
 	const float r = QueryRadius;
 	const float rSq = r * r;
 
-	// 2) Build query AABB (square around the query circle)
 	FRect queryRect;
 	queryRect.Min = FVector2D(center.X - r, center.Y - r);
 	queryRect.Max = FVector2D(center.X + r, center.Y + r);
 
-	// 3) Iterate cells, but only consider those whose bounding box overlaps the query rect
 	for (Cell& cell : Cells)
 	{
-		// Skip cells that are definitely too far (no overlap)
 		if (!DoRectsOverlap(cell.BoundingBox, queryRect))
 			continue;
 
-		// 4) Cell overlaps -> check actual agents inside this cell
 		for (ASteeringAgent* other : cell.Agents)
 		{
 			if (!IsValid(other) || other == &Agent)
 				continue;
 
-			const FVector2D toOther = other->GetPosition() - center;
-			const float distSq = toOther.SizeSquared();
+			const FVector2D otherPos = GetAgentPos2D_World(*other);
+			const float distSq = (otherPos - center).SizeSquared();
 
-			// 5) True neighborhood test (circle)
 			if (distSq <= rSq)
 			{
-				// memory pool write (avoid out of bounds)
 				if (NrOfNeighbors < Neighbors.Num())
-				{
-					Neighbors[NrOfNeighbors] = other;
-					++NrOfNeighbors;
-				}
+					Neighbors[NrOfNeighbors++] = other;
 				else
-				{
-					// pool full then stop early
 					return;
-				}
 			}
 		}
 	}
-
 }
 
 void CellSpace::EmptyCells()
@@ -216,29 +194,17 @@ void CellSpace::RenderCells() const
 
 int CellSpace::PositionToIndex(FVector2D const& Pos) const
 {
-	//Move position relative to origin of the grid
-	const float localX = Pos.X - CellOrigin.X;
-	const float localY = Pos.Y - CellOrigin.Y;
+	// pozycja lokalna względem originu siatki
+	float localX = Pos.X - CellOrigin.X;
+	float localY = Pos.Y - CellOrigin.Y;
 
-	//If outside global bounds return invalid index
-	if (localX < 0.f || localY < 0.f ||
-		localX >= SpaceWidth || localY >= SpaceHeight)
-	{
-		return -1;
-	}
+	// clamp do wnętrza (ważne: SpaceWidth/Height są "max", więc odejmujemy mały eps)
+	localX = FMath::Clamp(localX, 0.f, SpaceWidth  - KINDA_SMALL_NUMBER);
+	localY = FMath::Clamp(localY, 0.f, SpaceHeight - KINDA_SMALL_NUMBER);
 
-	//Calculate column and row
-	const int col = static_cast<int>(localX / CellWidth);
-	const int row = static_cast<int>(localY / CellHeight);
+	const int col = FMath::Clamp(int(localX / CellWidth),  0, NrOfCols - 1);
+	const int row = FMath::Clamp(int(localY / CellHeight), 0, NrOfRows - 1);
 
-	//Extra safety check
-	if (col < 0 || col >= NrOfCols ||
-		row < 0 || row >= NrOfRows)
-	{
-		return -1;
-	}
-
-	//Convert 2D index to 1D index
 	return row * NrOfCols + col;
 }
 

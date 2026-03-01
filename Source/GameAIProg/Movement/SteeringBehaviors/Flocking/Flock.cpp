@@ -64,11 +64,13 @@ Flock::Flock(
 			FRotator::ZeroRotator,
 			params
 		);
-
+		
 		if (IsValid(Agents[i]))
 		{
+			Agents[i]->SetActorTickEnabled(false); // <- ważne
 			pCellSpace->AddAgent(*Agents[i]);
 		}
+		
 	}
 
 	//Create a cohesion behavior that can access THIS flock
@@ -98,6 +100,25 @@ Flock::~Flock()
 
 void Flock::Tick(float DeltaTime)
 {
+	// =========================
+	// 0) Toggle spatial partitioning on D press (edge detect)
+	// =========================
+	const bool bDIsDown =
+		IsValid(pWorld) &&
+		pWorld->GetFirstPlayerController() &&
+		pWorld->GetFirstPlayerController()->IsInputKeyDown(EKeys::D);
+
+	if (bDIsDown && !bDWasDown)
+	{
+		mUseSpacialPartitioning = !mUseSpacialPartitioning;
+		UE_LOG(LogTemp, Warning, TEXT("Spatial Partitioning: %s"),
+			mUseSpacialPartitioning ? TEXT("ON") : TEXT("OFF"));
+	}
+	bDWasDown = bDIsDown;
+
+	// =========================
+	// 1) Update evade target
+	// =========================
 	if (pEvadeBehavior && IsValid(pAgentToEvade))
 	{
 		FTargetData targetToEvade{};
@@ -107,36 +128,84 @@ void Flock::Tick(float DeltaTime)
 		targetToEvade.AngularVelocity = pAgentToEvade->GetAngularVelocity();
 		pEvadeBehavior->SetTarget(targetToEvade);
 	}
-	for (auto pAgent : Agents)
+
+	// =========================
+	// 2) World bounds for trim
+	// =========================
+	const float half =
+		(pTrimWorld != nullptr)
+		? (pTrimWorld->GetTrimWorldSize() * 0.5f)
+		: 1500.f;
+
+	// =========================
+	// 3) Update each agent
+	// =========================
+	for (ASteeringAgent* pAgent : Agents)
 	{
 		if (!IsValid(pAgent))
-		{
 			continue;
-		}
+
+		// OLD POS BEFORE movement (world XY)
+		const FVector2D oldPos2D = pAgent->GetPosition();
+
+		// -------------------------
+		// 3.1) Register neighbors for THIS agent
+		//     (fills Flock::Neighbors + NrOfNeighbors)
+		// -------------------------
 		if (!mUseSpacialPartitioning)
 		{
-			RegisterNeighbors(pAgent);
+			RegisterNeighbors(pAgent); // brute force -> fills Neighbors + NrOfNeighbors
+		}
+		else if (pCellSpace)
+		{
+			// cellspace computes its own pool
+			pCellSpace->RegisterNeighbors(*pAgent, NeighborhoodRadius);
+
+			// copy to Flock pool so your behaviors (Cohesion etc.) see it
+			NrOfNeighbors = pCellSpace->GetNrOfNeighbors();
+			const TArray<ASteeringAgent*>& cellNeighbors = pCellSpace->GetNeighbors();
+
+			const int maxToCopy = FMath::Min(NrOfNeighbors, Neighbors.Num());
+			for (int i = 0; i < maxToCopy; ++i)
+				Neighbors[i] = cellNeighbors[i];
+
+			NrOfNeighbors = maxToCopy;
 		}
 		else
 		{
-			//TODO: RegisterNeighbors only on cell near you
-			pCellSpace->RegisterNeighbors(*pAgent,NeighborhoodRadius);
+			// partitioning ON but no cellspace
+			NrOfNeighbors = 0;
 		}
-		
-		//Later: SteeringBehaviours will read Neighbours[0 to NrOfNeigbhours-1] 
+
+		// -------------------------
+		// 3.2) Steering + movement
+		// -------------------------
 		pAgent->Tick(DeltaTime);
+
+		// -------------------------
+		// 3.3) Trim to world bounds (keep Z)
+		// -------------------------
+		FVector loc = pAgent->GetActorLocation();
+		loc.X = FMath::Clamp(loc.X, -half, half);
+		loc.Y = FMath::Clamp(loc.Y, -half, half);
+		pAgent->SetActorLocation(loc);
+
+		// -------------------------
+		// 3.4) Update CellSpace membership AFTER movement+trim
+		// -------------------------
+		if (mUseSpacialPartitioning && pCellSpace)
+		{
+			pCellSpace->UpdateAgentCell(*pAgent, oldPos2D);
+		}
 	}
-	
- // TODO: update the flock
- // TODO: for every agent:
-  // TODO: register the neighbors for this agent (-> fill the memory pool with the neighbors for the currently evaluated agent)
-  // TODO: update the agent (-> the steeringbehaviors use the neighbors in the memory pool)
-  // TODO: trim the agent to the world
 }
 
 void Flock::RenderDebug()
 {
- // TODO: Render all the agents in the flock
+	if (mUseSpacialPartitioning && pCellSpace)
+	{
+		pCellSpace->RenderCells();
+	}
 }
 
 void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
@@ -228,7 +297,25 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 
 void Flock::RenderNeighborhood()
 {
- // TODO: Debugrender the neighbors for the first agent in the flock
+	ASteeringAgent* const first = Agents[0];
+	if (!IsValid(first)) return;
+	const float Z = first->GetActorLocation().Z; // keep it at agent height
+	const FVector center(first->GetPosition(), Z);
+	DrawDebugCircle(
+		pWorld,
+		center,
+		NeighborhoodRadius,
+		64,
+		FColor::Yellow,
+		false,
+		0.f,   // one frame
+		0,
+		2.f,
+		FVector(1, 0, 0),
+		FVector(0, 1, 0),
+		false
+	);
+	
 }
 
 #ifndef GAMEAI_USE_SPACE_PARTITIONING

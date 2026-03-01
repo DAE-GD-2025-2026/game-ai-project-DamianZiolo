@@ -27,16 +27,16 @@ SteeringOutput Seek::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
     const FVector start = FVector(Agent.GetPosition(), 0.f);
     const FVector end = FVector(Target.Position, 0.f);
 
-    DrawDebugLine(
-        Agent.GetWorld(),
-        start,
-        end,
-        FColor::Green,
-        false,   // persistent lines
-        0.f,     // life time (0 = one frame)
-        0,
-        2.f      // thickness
-    );
+    // DrawDebugLine(
+    //     Agent.GetWorld(),
+    //     start,
+    //     end,
+    //     FColor::Green,
+    //     false,   // persistent lines
+    //     0.f,     // life time (0 = one frame)
+    //     0,
+    //     2.f      // thickness
+    // );
 
 
 
@@ -201,16 +201,16 @@ SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
     //curent Direction rotation:
     const FVector2D currentDir(FMath::Cos(currentYawRad), FMath::Sin(currentYawRad));
 
-    DrawDebugLine(
-        Agent.GetWorld(),
-        start,
-        start + FVector(currentDir, 0.f) * 200.f,
-        FColor::Green,
-        false,
-        0.f,
-        0,
-        2.f
-    );
+    // DrawDebugLine(
+    //     Agent.GetWorld(),
+    //     start,
+    //     start + FVector(currentDir, 0.f) * 200.f,
+    //     FColor::Green,
+    //     false,
+    //     0.f,
+    //     0,
+    //     2.f
+    // );
 
 
     return Steering;
@@ -238,17 +238,17 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
     Steering.LinearVelocity = predictedPos - Agent.GetPosition();
   
-    // Agent->predicted position line
-        DrawDebugLine(
-            Agent.GetWorld(),
-            FVector(Agent.GetPosition(), 0.f),
-            FVector(predictedPos, 0.f),
-            FColor::Green,
-            false,
-            0.f,
-            0,
-            2.f
-        );
+    // // Agent->predicted position line
+    //     DrawDebugLine(
+    //         Agent.GetWorld(),
+    //         FVector(Agent.GetPosition(), 0.f),
+    //         FVector(predictedPos, 0.f),
+    //         FColor::Green,
+    //         false,
+    //         0.f,
+    //         0,
+    //         2.f
+    //     );
 
     // Predicted position marker
     DrawDebugSphere(

@@ -21,7 +21,7 @@ public:
 	Flock(
 	UWorld* pWorld,
 	TSubclassOf<ASteeringAgent> AgentClass,
-	int FlockSize = 10, 
+	int FlockSize, 
 	float WorldSize = 100.f, 
 	ASteeringAgent* const pAgentToEvade = nullptr, 
 	bool bTrimWorld = false,
@@ -52,9 +52,10 @@ private:
 	// For debug rendering purposes
 	UWorld* pWorld{nullptr};
 	AWorldTrimVolume* pTrimWorld{nullptr};
-	int FlockSize{0};
+	int FlockSize{10};
 	TArray<ASteeringAgent*> Agents{};
 	bool mUseSpacialPartitioning{false};
+	bool bDWasDown{false};
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
 	//std::unique_ptr<CellSpace> pPartitionedSpace{};
 	//int NrOfCellsX{ 10 };
