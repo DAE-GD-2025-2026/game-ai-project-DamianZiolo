@@ -108,38 +108,67 @@ void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 
 void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 {
-	NrOfNeighbors = 0;
+    NrOfNeighbors = 0;
 
-	const FVector2D center = GetAgentPos2D_World(Agent);
-	const float r = QueryRadius;
-	const float rSq = r * r;
+    const FVector2D center = GetAgentPos2D_World(Agent);
+    const float r = QueryRadius;
+    const float rSq = r * r;
 
-	FRect queryRect;
-	queryRect.Min = FVector2D(center.X - r, center.Y - r);
-	queryRect.Max = FVector2D(center.X + r, center.Y + r);
+    // 1) Rect zapytania (AABB) wokół agenta
+    FRect queryRect;
+    queryRect.Min = FVector2D(center.X - r, center.Y - r);
+    queryRect.Max = FVector2D(center.X + r, center.Y + r);
 
-	for (Cell& cell : Cells)
-	{
-		if (!DoRectsOverlap(cell.BoundingBox, queryRect))
-			continue;
+    // 2) Zamiana queryRect na zakres komórek (min/max col/row)
+    auto PosToCol = [&](float x) -> int
+    {
+        float localX = x - CellOrigin.X;
+        localX = FMath::Clamp(localX, 0.f, SpaceWidth - KINDA_SMALL_NUMBER);
+        return FMath::Clamp(int(localX / CellWidth), 0, NrOfCols - 1);
+    };
 
-		for (ASteeringAgent* other : cell.Agents)
-		{
-			if (!IsValid(other) || other == &Agent)
-				continue;
+    auto PosToRow = [&](float y) -> int
+    {
+        float localY = y - CellOrigin.Y;
+        localY = FMath::Clamp(localY, 0.f, SpaceHeight - KINDA_SMALL_NUMBER);
+        return FMath::Clamp(int(localY / CellHeight), 0, NrOfRows - 1);
+    };
 
-			const FVector2D otherPos = GetAgentPos2D_World(*other);
-			const float distSq = (otherPos - center).SizeSquared();
+    const int minCol = PosToCol(queryRect.Min.X);
+    const int maxCol = PosToCol(queryRect.Max.X);
+    const int minRow = PosToRow(queryRect.Min.Y);
+    const int maxRow = PosToRow(queryRect.Max.Y);
 
-			if (distSq <= rSq)
-			{
-				if (NrOfNeighbors < Neighbors.Num())
-					Neighbors[NrOfNeighbors++] = other;
-				else
-					return;
-			}
-		}
-	}
+    // 3) Iteruj tylko po tych komórkach
+    for (int row = minRow; row <= maxRow; ++row)
+    {
+        for (int col = minCol; col <= maxCol; ++col)
+        {
+            const int idx = row * NrOfCols + col;
+            Cell& cell = Cells[idx];
+
+            // (opcjonalnie) jeszcze raz overlap - zwykle zbędne, ale spełnia "tip" z zadania
+            if (!DoRectsOverlap(cell.BoundingBox, queryRect))
+                continue;
+
+            for (ASteeringAgent* other : cell.Agents)
+            {
+                if (!IsValid(other) || other == &Agent)
+                    continue;
+
+                const FVector2D otherPos = GetAgentPos2D_World(*other);
+                const float distSq = (otherPos - center).SizeSquared();
+
+                if (distSq <= rSq)
+                {
+                    if (NrOfNeighbors < Neighbors.Num())
+                        Neighbors[NrOfNeighbors++] = other;
+                    else
+                        return;
+                }
+            }
+        }
+    }
 }
 
 void CellSpace::EmptyCells()

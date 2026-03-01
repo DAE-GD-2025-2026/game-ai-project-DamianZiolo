@@ -101,7 +101,7 @@ Flock::~Flock()
 void Flock::Tick(float DeltaTime)
 {
 	// =========================
-	// 0) Toggle spatial partitioning on D press (edge detect)
+	// 0) Toggle spatial partitioning on D press
 	// =========================
 	const bool bDIsDown =
 		IsValid(pWorld) &&
