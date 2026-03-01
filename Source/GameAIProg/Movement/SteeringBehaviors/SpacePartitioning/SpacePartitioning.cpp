@@ -109,17 +109,18 @@ void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
 {
     NrOfNeighbors = 0;
+    DebugCheckedCellIndices.Reset();
 
     const FVector2D center = GetAgentPos2D_World(Agent);
     const float r = QueryRadius;
     const float rSq = r * r;
 
-    // 1) Rect zapytania (AABB) wokół agenta
+    // Query AABB (axis-aligned square around the circle)
     FRect queryRect;
     queryRect.Min = FVector2D(center.X - r, center.Y - r);
     queryRect.Max = FVector2D(center.X + r, center.Y + r);
 
-    // 2) Zamiana queryRect na zakres komórek (min/max col/row)
+    // Convert world position to grid col/row
     auto PosToCol = [&](float x) -> int
     {
         float localX = x - CellOrigin.X;
@@ -139,7 +140,44 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
     const int minRow = PosToRow(queryRect.Min.Y);
     const int maxRow = PosToRow(queryRect.Max.Y);
 
-    // 3) Iteruj tylko po tych komórkach
+    // -------------------------
+    // DEBUG DRAW: radius + queryRect
+    // -------------------------
+    if (pWorld)
+    {
+        const float Z = Agent.GetActorLocation().Z;
+
+        // Circle radius
+        DrawDebugCircle(
+            pWorld,
+            FVector(center.X, center.Y, Z),
+            r,
+            64,
+            FColor::Green,
+            false,
+            0.f,
+            0,
+            2.f,
+            FVector(1, 0, 0),
+            FVector(0, 1, 0),
+            false
+        );
+
+        // QueryRect outline (optional but useful)
+        const FVector p0(queryRect.Min.X, queryRect.Min.Y, Z);
+        const FVector p1(queryRect.Max.X, queryRect.Min.Y, Z);
+        const FVector p2(queryRect.Max.X, queryRect.Max.Y, Z);
+        const FVector p3(queryRect.Min.X, queryRect.Max.Y, Z);
+
+        DrawDebugLine(pWorld, p0, p1, FColor::Green, false, 0.f, 0, 1.f);
+        DrawDebugLine(pWorld, p1, p2, FColor::Green, false, 0.f, 0, 1.f);
+        DrawDebugLine(pWorld, p2, p3, FColor::Green, false, 0.f, 0, 1.f);
+        DrawDebugLine(pWorld, p3, p0, FColor::Green, false, 0.f, 0, 1.f);
+    }
+
+    // -------------------------
+    // Iterate only the cells overlapped by the queryRect
+    // -------------------------
     for (int row = minRow; row <= maxRow; ++row)
     {
         for (int col = minCol; col <= maxCol; ++col)
@@ -147,7 +185,10 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
             const int idx = row * NrOfCols + col;
             Cell& cell = Cells[idx];
 
-            // (opcjonalnie) jeszcze raz overlap - zwykle zbędne, ale spełnia "tip" z zadania
+            // Mark as checked for debug visualization
+            DebugCheckedCellIndices.Add(idx);
+
+            // Tip from assignment: use rect overlap test
             if (!DoRectsOverlap(cell.BoundingBox, queryRect))
                 continue;
 
@@ -189,7 +230,7 @@ void CellSpace::RenderCells() const
 		const FVector2D min = cell.BoundingBox.Min;
 		const FVector2D max = cell.BoundingBox.Max;
 
-		// Z height so it's visible above the ground (tweak if needed)
+		// Z height so it's visible above the ground
 		const float Z = 90.f;
 
 		// Four corners of the cell rectangle
@@ -198,11 +239,16 @@ void CellSpace::RenderCells() const
 		const FVector p2(max.X, max.Y, Z);
 		const FVector p3(min.X, max.Y, Z);
 
+		// Highlight checked cells
+		const bool bChecked = DebugCheckedCellIndices.Contains(i);
+		const FColor lineColor = bChecked ? FColor::Yellow : FColor::Cyan;
+		const float thickness = bChecked ? 3.f : 1.f;
+
 		// Draw rectangle outline
-		DrawDebugLine(pWorld, p0, p1, FColor::Cyan, false, 0.f, 0, 1.f);
-		DrawDebugLine(pWorld, p1, p2, FColor::Cyan, false, 0.f, 0, 1.f);
-		DrawDebugLine(pWorld, p2, p3, FColor::Cyan, false, 0.f, 0, 1.f);
-		DrawDebugLine(pWorld, p3, p0, FColor::Cyan, false, 0.f, 0, 1.f);
+		DrawDebugLine(pWorld, p0, p1, lineColor, false, 0.f, 0, thickness);
+		DrawDebugLine(pWorld, p1, p2, lineColor, false, 0.f, 0, thickness);
+		DrawDebugLine(pWorld, p2, p3, lineColor, false, 0.f, 0, thickness);
+		DrawDebugLine(pWorld, p3, p0, lineColor, false, 0.f, 0, thickness);
 
 		// Draw agent count text in the center of the cell
 		const FVector2D center2D = (min + max) * 0.5f;
@@ -214,9 +260,9 @@ void CellSpace::RenderCells() const
 			center3D,
 			FString::Printf(TEXT("%d"), count),
 			nullptr,
-			FColor::White,
+			bChecked ? FColor::Yellow : FColor::White,
 			0.f,   // lifetime (0 = one frame)
-			false  // draw shadow
+			false
 		);
 	}
 }

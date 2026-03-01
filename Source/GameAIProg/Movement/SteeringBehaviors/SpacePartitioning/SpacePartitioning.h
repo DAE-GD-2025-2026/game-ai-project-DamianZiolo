@@ -69,4 +69,10 @@ private:
 	// Helper functions
 	int PositionToIndex(FVector2D const & Pos) const;
 	bool DoRectsOverlap(FRect const& RectA, FRect const& RectB);
+	
+	// Debug viz
+	mutable TSet<int> DebugCheckedCellIndices; // cells checked in last query
+	mutable FVector2D DebugLastQueryCenter = FVector2D::ZeroVector;
+	mutable float DebugLastQueryRadius = 0.f;
+	mutable bool bHasDebugQuery = false;
 };
