@@ -60,6 +60,8 @@ CellSpace::CellSpace(UWorld* pWorld, float Width, float Height, int Rows, int Co
 	}
 }
 
+
+
 void CellSpace::AddAgent(ASteeringAgent& Agent)
 {
 	const FVector2D agentPos = GetAgentPos2D_World(Agent);
@@ -106,16 +108,15 @@ void CellSpace::UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos)
 	}
 }
 
-void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
+void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius, bool bDebugThisAgent)
 {
     NrOfNeighbors = 0;
-    DebugCheckedCellIndices.Reset();
 
     const FVector2D center = GetAgentPos2D_World(Agent);
     const float r = QueryRadius;
     const float rSq = r * r;
 
-    // Query AABB (axis-aligned square around the circle)
+    // Query AABB
     FRect queryRect;
     queryRect.Min = FVector2D(center.X - r, center.Y - r);
     queryRect.Max = FVector2D(center.X + r, center.Y + r);
@@ -140,44 +141,16 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
     const int minRow = PosToRow(queryRect.Min.Y);
     const int maxRow = PosToRow(queryRect.Max.Y);
 
-    // -------------------------
-    // DEBUG DRAW: radius + queryRect
-    // -------------------------
-    if (pWorld)
+    // --- DEBUG: zapisz info tylko dla debug agenta
+    if (bDebugThisAgent)
     {
-        const float Z = Agent.GetActorLocation().Z;
-
-        // Circle radius
-        DrawDebugCircle(
-            pWorld,
-            FVector(center.X, center.Y, Z),
-            r,
-            64,
-            FColor::Green,
-            false,
-            0.f,
-            0,
-            2.f,
-            FVector(1, 0, 0),
-            FVector(0, 1, 0),
-            false
-        );
-
-        // QueryRect outline (optional but useful)
-        const FVector p0(queryRect.Min.X, queryRect.Min.Y, Z);
-        const FVector p1(queryRect.Max.X, queryRect.Min.Y, Z);
-        const FVector p2(queryRect.Max.X, queryRect.Max.Y, Z);
-        const FVector p3(queryRect.Min.X, queryRect.Max.Y, Z);
-
-        DrawDebugLine(pWorld, p0, p1, FColor::Green, false, 0.f, 0, 1.f);
-        DrawDebugLine(pWorld, p1, p2, FColor::Green, false, 0.f, 0, 1.f);
-        DrawDebugLine(pWorld, p2, p3, FColor::Green, false, 0.f, 0, 1.f);
-        DrawDebugLine(pWorld, p3, p0, FColor::Green, false, 0.f, 0, 1.f);
+        DebugCheckedCellIndices.Reset();
+        bHasDebugQuery = true;
+        DebugQueryCenter = center;
+        DebugQueryRadius = r;
     }
 
-    // -------------------------
     // Iterate only the cells overlapped by the queryRect
-    // -------------------------
     for (int row = minRow; row <= maxRow; ++row)
     {
         for (int col = minCol; col <= maxCol; ++col)
@@ -185,10 +158,11 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius)
             const int idx = row * NrOfCols + col;
             Cell& cell = Cells[idx];
 
-            // Mark as checked for debug visualization
-            DebugCheckedCellIndices.Add(idx);
+            if (bDebugThisAgent)
+            {
+                DebugCheckedCellIndices.Add(idx);
+            }
 
-            // Tip from assignment: use rect overlap test
             if (!DoRectsOverlap(cell.BoundingBox, queryRect))
                 continue;
 
@@ -264,6 +238,25 @@ void CellSpace::RenderCells() const
 			0.f,   // lifetime (0 = one frame)
 			false
 		);
+		
+		// Draw debug circle only for the debug agent query (single circle)
+		if (bHasDebugQuery && pWorld)
+		{
+			DrawDebugCircle(
+				pWorld,
+				FVector(DebugQueryCenter.X, DebugQueryCenter.Y, Z),
+				DebugQueryRadius,
+				64,
+				FColor::Green,
+				false,
+				0.f,
+				0,
+				2.f,
+				FVector(1, 0, 0),
+				FVector(0, 1, 0),
+				false
+			);
+		}
 	}
 }
 

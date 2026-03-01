@@ -32,14 +32,30 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	void SetTrimWorldSize(float NewSize);
-	float GetTrimWorldSize() const { return TrimWorldSize; }
+	float GetTrimWorldSize() const
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[TrimWorld] TrimWorldSize=%f"), TrimWorldSize);
+
+		if (TrimVolume)
+		{
+			const FVector ext = TrimVolume->GetScaledBoxExtent(); // half-size w UE
+			UE_LOG(LogTemp, Warning, TEXT("[TrimWorld] BoxExtent(half)=(%f,%f,%f) => fullXY=(%f,%f)"),
+				ext.X, ext.Y, ext.Z, ext.X * 2.f, ext.Y * 2.f);
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[TrimWorld] TrimVolume is NULL"));
+		}
+		
+		return TrimWorldSize;
+	}
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* TrimVolume{};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TrimWorldSize{1000.f};
+	float TrimWorldSize{1500.f};
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -22,7 +22,7 @@ public:
 	UWorld* pWorld,
 	TSubclassOf<ASteeringAgent> AgentClass,
 	int FlockSize, 
-	float WorldSize = 100.f, 
+	float WorldSize, 
 	ASteeringAgent* const pAgentToEvade = nullptr, 
 	bool bTrimWorld = false,
 	AWorldTrimVolume* pTrimWorld = nullptr

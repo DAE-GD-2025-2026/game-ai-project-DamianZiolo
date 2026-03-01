@@ -37,7 +37,7 @@ public:
 	void AddAgent(ASteeringAgent& Agent);
 	void UpdateAgentCell(ASteeringAgent& Agent, const FVector2D& OldPos);
 
-	void RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius);
+	void RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius, bool bDebugThisAgent);
 	const TArray<ASteeringAgent*>& GetNeighbors() const { return Neighbors; }
 	int GetNrOfNeighbors() const { return NrOfNeighbors; }
 
@@ -69,6 +69,12 @@ private:
 	// Helper functions
 	int PositionToIndex(FVector2D const & Pos) const;
 	bool DoRectsOverlap(FRect const& RectA, FRect const& RectB);
+	
+	// Debug: last query info (for drawing a single circle)
+	mutable FVector2D DebugQueryCenter{FVector2D::ZeroVector};
+	mutable float DebugQueryRadius{0.f};
+	
+	
 	
 	// Debug viz
 	mutable TSet<int> DebugCheckedCellIndices; // cells checked in last query

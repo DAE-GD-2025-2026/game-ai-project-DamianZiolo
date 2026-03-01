@@ -19,8 +19,9 @@ Flock::Flock(
 	, pTrimWorld(pTrimWorld)
 {
 	Agents.SetNum(FlockSize);
-	pCellSpace= std::make_unique<CellSpace>(pWorld,pTrimWorld->GetTrimWorldSize(),pTrimWorld->GetTrimWorldSize(),5,5,FlockSize);
-
+	const float Full = pTrimWorld->GetTrimWorldSize() * 2.f;
+	pCellSpace = std::make_unique<CellSpace>(pWorld, Full, Full, 5, 5, FlockSize);
+	
  // TODO: initialize the flock and the memory pool
 	Neighbors.SetNum(FlockSize);
 	NrOfNeighbors = 0;
@@ -174,7 +175,8 @@ void Flock::Tick(float DeltaTime)
 		}
 		else if (pCellSpace)
 		{
-			pCellSpace->RegisterNeighbors(*pAgent, NeighborhoodRadius);
+			const bool bDebugThisAgent = (pAgent == Agents[0]); // albo inny wybór
+			pCellSpace->RegisterNeighbors(*pAgent, NeighborhoodRadius, bDebugThisAgent);
 
 			NrOfNeighbors = pCellSpace->GetNrOfNeighbors();
 			const TArray<ASteeringAgent*>& cellNeighbors = pCellSpace->GetNeighbors();
@@ -194,22 +196,16 @@ void Flock::Tick(float DeltaTime)
 		// 3.2) Steering + movement (manual tick)
 		// -------------------------
 		pAgent->Tick(DeltaTime);
-
-		// -------------------------
-		// 3.3) Trim AFTER movement (keep Z)
-		// -------------------------
-		FVector newLoc3D = pAgent->GetActorLocation();
-		newLoc3D.X = FMath::Clamp(newLoc3D.X, -half, half);
-		newLoc3D.Y = FMath::Clamp(newLoc3D.Y, -half, half);
-		pAgent->SetActorLocation(newLoc3D);
+		
 
 		// -------------------------
 		// 3.4) Update CellSpace membership AFTER movement+trim
 		//      (OldPos musi być sprzed ticka!)
 		// -------------------------
-		if (mUseSpacialPartitioning && pCellSpace)
+		if (mUseSpacialPartitioning)
 		{
 			pCellSpace->UpdateAgentCell(*pAgent, oldPos2D);
+			
 		}
 	}
 }
