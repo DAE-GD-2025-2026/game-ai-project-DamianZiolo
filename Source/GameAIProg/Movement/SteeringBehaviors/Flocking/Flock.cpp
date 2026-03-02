@@ -19,6 +19,7 @@ Flock::Flock(
 	, pTrimWorld(pTrimWorld)
 {
 	Agents.SetNum(FlockSize);
+	OldPositions.SetNum(FlockSize);
 	const float Full = pTrimWorld->GetTrimWorldSize() * 2.f;
 	pCellSpace = std::make_unique<CellSpace>(pWorld, Full, Full, 5, 5, FlockSize);
 	
@@ -65,6 +66,7 @@ Flock::Flock(
 			FRotator::ZeroRotator,
 			params
 		);
+		OldPositions[i] = FVector2D( Agents[i]->GetActorLocation().X, Agents[i]->GetActorLocation().Y );
 		
 		if (IsValid(Agents[i]))
 		{
@@ -155,8 +157,10 @@ void Flock::Tick(float DeltaTime)
 	// =========================
 	// 3) Update each agent
 	// =========================
-	for (ASteeringAgent* pAgent : Agents)
+	for (int index{0}; index< Agents.Num(); ++index)
 	{
+		auto pAgent{Agents[index]};
+		
 		if (!IsValid(pAgent))
 			continue;
 
@@ -204,9 +208,12 @@ void Flock::Tick(float DeltaTime)
 		// -------------------------
 		if (mUseSpacialPartitioning)
 		{
-			pCellSpace->UpdateAgentCell(*pAgent, oldPos2D);
+			pCellSpace->UpdateAgentCell(*pAgent, OldPositions[index]);
 			
 		}
+		OldPositions[index] = pAgent->GetPosition();
+		
+		
 	}
 }
 

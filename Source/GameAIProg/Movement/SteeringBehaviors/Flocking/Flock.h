@@ -59,9 +59,10 @@ private:
 #ifdef GAMEAI_USE_SPACE_PARTITIONING
 	//std::unique_ptr<CellSpace> pPartitionedSpace{};
 	//int NrOfCellsX{ 10 };
-	//TArray<FVector2D> OldPositions{};
+	
 #else // No space partitioning
 	TArray<ASteeringAgent*> Neighbors{};
+	TArray<FVector2D> OldPositions{};
 #endif // USE_SPACE_PARTITIONING
 	
 	float NeighborhoodRadius{200.f};
