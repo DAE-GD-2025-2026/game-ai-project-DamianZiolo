@@ -140,8 +140,7 @@ void CellSpace::RegisterNeighbors(ASteeringAgent& Agent, float QueryRadius, bool
     const int maxCol = PosToCol(queryRect.Max.X);
     const int minRow = PosToRow(queryRect.Min.Y);
     const int maxRow = PosToRow(queryRect.Max.Y);
-
-    // --- DEBUG: zapisz info tylko dla debug agenta
+	
     if (bDebugThisAgent)
     {
         DebugCheckedCellIndices.Reset();
@@ -262,11 +261,10 @@ void CellSpace::RenderCells() const
 
 int CellSpace::PositionToIndex(FVector2D const& Pos) const
 {
-	// pozycja lokalna względem originu siatki
+	
 	float localX = Pos.X - CellOrigin.X;
 	float localY = Pos.Y - CellOrigin.Y;
-
-	// clamp do wnętrza (ważne: SpaceWidth/Height są "max", więc odejmujemy mały eps)
+	
 	localX = FMath::Clamp(localX, 0.f, SpaceWidth  - KINDA_SMALL_NUMBER);
 	localY = FMath::Clamp(localY, 0.f, SpaceHeight - KINDA_SMALL_NUMBER);
 

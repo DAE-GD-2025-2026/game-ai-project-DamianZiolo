@@ -105,7 +105,6 @@ void Flock::Tick(float DeltaTime)
 {
 	// =========================
 	// 0) Toggle spatial partitioning on D press
-	// =========================
 	const bool bDIsDown =
 		IsValid(pWorld) &&
 		pWorld->GetFirstPlayerController() &&
@@ -117,9 +116,7 @@ void Flock::Tick(float DeltaTime)
 
 		UE_LOG(LogTemp, Warning, TEXT("Spatial Partitioning: %s"),
 			mUseSpacialPartitioning ? TEXT("ON") : TEXT("OFF"));
-
-		// (Opcjonalnie, ale polecam) - po przełączeniu trybu przebuduj komórki,
-		// żeby nie trzymały starych wpisów / duplikatów.
+		
 		if (mUseSpacialPartitioning && pCellSpace)
 		{
 			pCellSpace->EmptyCells();
@@ -135,7 +132,6 @@ void Flock::Tick(float DeltaTime)
 
 	// =========================
 	// 1) Update evade target
-	// =========================
 	if (pEvadeBehavior && IsValid(pAgentToEvade))
 	{
 		FTargetData targetToEvade{};
@@ -148,7 +144,6 @@ void Flock::Tick(float DeltaTime)
 
 	// =========================
 	// 2) World bounds for trim
-	// =========================
 	const float half =
 		(pTrimWorld != nullptr)
 		? (pTrimWorld->GetTrimWorldSize() * 0.5f)
@@ -156,7 +151,6 @@ void Flock::Tick(float DeltaTime)
 
 	// =========================
 	// 3) Update each agent
-	// =========================
 	for (int index{0}; index< Agents.Num(); ++index)
 	{
 		auto pAgent{Agents[index]};
@@ -165,21 +159,15 @@ void Flock::Tick(float DeltaTime)
 			continue;
 
 		// -------------------------
-		// 3.0) Save OLD POS (world XY) BEFORE any movement
-		// -------------------------
-		const FVector oldLoc3D = pAgent->GetActorLocation();
-		const FVector2D oldPos2D(oldLoc3D.X, oldLoc3D.Y);
-
-		// -------------------------
 		// 3.1) Register neighbors for THIS agent
 		// -------------------------
 		if (!mUseSpacialPartitioning)
 		{
-			RegisterNeighbors(pAgent); // brute-force
+			RegisterNeighbors(pAgent); 
 		}
 		else if (pCellSpace)
 		{
-			const bool bDebugThisAgent = (pAgent == Agents[0]); // albo inny wybór
+			const bool bDebugThisAgent = (pAgent == Agents[0]);
 			pCellSpace->RegisterNeighbors(*pAgent, NeighborhoodRadius, bDebugThisAgent);
 
 			NrOfNeighbors = pCellSpace->GetNrOfNeighbors();
@@ -197,14 +185,13 @@ void Flock::Tick(float DeltaTime)
 		}
 
 		// -------------------------
-		// 3.2) Steering + movement (manual tick)
+		// 3.2) Steering + movement
 		// -------------------------
 		pAgent->Tick(DeltaTime);
 		
 
 		// -------------------------
 		// 3.4) Update CellSpace membership AFTER movement+trim
-		//      (OldPos musi być sprzed ticka!)
 		// -------------------------
 		if (mUseSpacialPartitioning)
 		{
