@@ -79,7 +79,28 @@ namespace GameAI
 		std::vector<Node*> Nodes = m_pGraph->GetActiveNodes();
 		if (Nodes.size() == 0)
 			return false;
-
+		
+		std::vector<bool> visited(Nodes.size(), false);
+		int startIndex{ Graphs::InvalidNodeId }; //InvalidNodeId = -1, but just to be "more correct" or in case of change I'm taking it like this
+		
+		for (int index = 0; index < Nodes.size(); ++index)
+		{
+			auto fromConnections = m_pGraph->FindConnectionsFrom(Nodes[index]->GetId());
+			auto toConnections = m_pGraph->FindConnectionsTo(Nodes[index]->GetId());
+			//if this node has any connection, then we will use it
+			if (!fromConnections.empty() || !toConnections.empty())
+			{
+				startIndex = index;
+				break;
+			}
+			
+		}
+		
+		if (startIndex == -1)
+			return false;
+		
+		VisitAllNodesDFS(Nodes, visited, startIndex);
+		
 		// TODO choose a starting node
 		
 		// TODO start a depth-first-search traversal from the node that has at least one connection
