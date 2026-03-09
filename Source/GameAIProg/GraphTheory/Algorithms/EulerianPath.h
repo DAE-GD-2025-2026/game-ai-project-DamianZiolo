@@ -29,19 +29,45 @@ namespace GameAI
 	inline EulerianPath::EulerianPath(Graph* const pGraph)
 		: m_pGraph(pGraph)
 	{
+		
+			
+		
 	}
 
 	inline Eulerianity EulerianPath::IsEulerian() const
 	{
+		
 		// TODO If the graph is not connected, there can be no Eulerian Trail
-
+		if (!IsConnected())
+			return Eulerianity::notEulerian;
+		
 		// TODO Count nodes with odd degree 
-
+		auto Nodes = m_pGraph->GetActiveNodes();
+		int oddDegree{ 0 };
+		for (int i = 0; i < static_cast<int>(Nodes.size()); ++i)
+		{
+			int NodeId = Nodes[i]->GetId();
+			auto fromConnections = m_pGraph->FindConnectionsFrom(NodeId);
+			auto toConnections = m_pGraph->FindConnectionsTo(NodeId);
+			
+			int connections = static_cast<int> (fromConnections.size() + toConnections.size()) ;
+			if (connections % 2 != 0)
+				oddDegree++;
+			
+				
+		}
+		
+		if (oddDegree > 2)
+			return Eulerianity::notEulerian;
+		if (oddDegree == 2)
+			return Eulerianity::semiEulerian;
+		if (oddDegree == 0)
+			return Eulerianity::eulerian;
+		
+		
 		// TODO A connected graph with more than 2 nodes with an odd degree (an odd amount of connections) is not Eulerian
-
 		// TODO A connected graph with exactly 2 nodes with an odd degree is Semi-Eulerian (unless there are only 2 nodes)
 		// TODO An Euler trail can be made, but only starting and ending in these 2 nodes
-
 		// TODO A connected graph with no odd nodes is Eulerian
 		
 		return Eulerianity::notEulerian;
@@ -54,6 +80,31 @@ namespace GameAI
 		std::vector<Node*> Path = {};
 		std::vector<Node*> Nodes = graphCopy.GetActiveNodes();
 		int currentNodeId{ Graphs::InvalidNodeId };
+		
+		Eulerianity eulerian = IsEulerian();
+		if (Nodes.empty())
+			return Path;
+		if (eulerian == Eulerianity::notEulerian)
+			return Path;
+		else if (eulerian == Eulerianity::semiEulerian)
+		{
+			for (int i = 0; i < static_cast<int>(Nodes.size()); ++i)
+			{
+				auto fromConnections = m_pGraph->FindConnectionsFrom(Nodes[i]->GetId());
+				auto toConnections = m_pGraph->FindConnectionsTo(Nodes[i]->GetId());
+				int connections = static_cast<int>(fromConnections.size() + toConnections.size()) ;
+				if (connections % 2 != 0)
+				{
+					currentNodeId = Nodes[i]->GetId();
+					break;
+				}
+			}
+		}
+		else if (eulerian == Eulerianity::eulerian)
+		{
+			currentNodeId = Nodes[0]->GetId();
+		}
+		
 		
 		// TODO Check if there can be an Euler path
 		// TODO If this graph is not eulerian, return the empty path
