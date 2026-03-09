@@ -90,8 +90,8 @@ namespace GameAI
 		{
 			for (int i = 0; i < static_cast<int>(Nodes.size()); ++i)
 			{
-				auto fromConnections = m_pGraph->FindConnectionsFrom(Nodes[i]->GetId());
-				auto toConnections = m_pGraph->FindConnectionsTo(Nodes[i]->GetId());
+				auto fromConnections = graphCopy.FindConnectionsFrom(Nodes[i]->GetId());
+				auto toConnections = graphCopy.FindConnectionsTo(Nodes[i]->GetId());
 				int connections = static_cast<int>(fromConnections.size() + toConnections.size()) ;
 				if (connections % 2 != 0)
 				{
@@ -111,7 +111,69 @@ namespace GameAI
 		
 		// TODO Start algorithm loop
 		std::stack<int> nodeStack;
+		int nextNodeId = Graphs::InvalidNodeId;
+		while (true)
+			{
+			    // Get all connections that start from the current node
+			    auto fromConnections = graphCopy.FindConnectionsFrom(currentNodeId);
 
+			    // Get all connections that end at the current node
+			    auto toConnections = graphCopy.FindConnectionsTo(currentNodeId);
+
+			    // Count how many connections the current node still has
+			    int degrees = static_cast<int>(fromConnections.size() + toConnections.size());
+
+			    // If the current node still has connections
+			    if (degrees > 0)
+			    {
+			        // Save the current node on the stack
+			        //  so we can return here later if needed
+			        nodeStack.push(currentNodeId);
+
+			        // Pointer to the connection we will use next
+			        Connection* chosenConnection = nullptr;
+
+			        // ID of the next node we will move to
+			        int nextNodeId = Graphs::InvalidNodeId;
+
+			        // If there are outgoing connections
+			        if (!fromConnections.empty())
+			        {
+			            // Choose the first outgoing connection
+			            chosenConnection = fromConnections[0];
+
+			            //  The next node is the "To" node of that connection
+			            nextNodeId = chosenConnection->GetToId();
+			        }
+			        else
+			        {
+			            //Otherwise choose the first incoming connection
+			            chosenConnection = toConnections[0];
+
+			            //The next node is the "From" node of that connection
+			            nextNodeId = chosenConnection->GetFromId();
+			        }
+
+			        // Remove this connection from the COPY of the graph
+			        //(because we already used it in the path)
+			        graphCopy.RemoveConnection(chosenConnection);
+
+			        // Move to the next node
+			        currentNodeId = nextNodeId;
+			    }
+			    else
+			    {
+			        // If the current node has no connections left,
+			        // this means we reached the end of this branch
+			        // Add the current node to the path
+			        // IMPORTANT!! use the node from the ORIGINAL graph
+			    	// If the stack is empty, the algorithm is finished
+			        // because there are no previous nodes to return to
+			    	// If the stack is NOT empty,
+			        // go back to the previous node and continue
+			    }
+			}
+		
 		std::reverse(Path.begin(), Path.end());
 		return Path;
 	}
