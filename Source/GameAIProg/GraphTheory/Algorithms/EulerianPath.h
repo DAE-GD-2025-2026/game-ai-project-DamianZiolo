@@ -71,6 +71,27 @@ namespace GameAI
 		// TODO Ask the graph for the connections from that node
 		// TODO recursively visit any valid connected nodes that were not visited before
 		// TODO Tip: use an index-based for-loop to find the correct index
+		visited[startIndex] = true;
+		int currentNodeId{ Graphs::InvalidNodeId };
+		currentNodeId = Nodes[startIndex]->GetId();
+		auto connections = m_pGraph->FindConnectionsFrom(currentNodeId);
+		for (int i = 0; i < static_cast<int>(connections.size()); ++i)
+		{
+			int nextNodeId = connections[i]->GetToId();
+			for (int j = 0; j < static_cast<int>(Nodes.size()); ++j)
+			{
+				if (Nodes[j]->GetId() == nextNodeId)
+				{
+					if (!visited[j])
+					{
+						VisitAllNodesDFS(Nodes, visited, j);
+					}
+					break;
+				}
+					
+			}
+		}
+		
 		
 		
 		
