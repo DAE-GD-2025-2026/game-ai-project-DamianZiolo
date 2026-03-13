@@ -19,6 +19,18 @@ ALevel_GraphTheory::ALevel_GraphTheory()
 void ALevel_GraphTheory::BeginPlay()
 {
 	Super::BeginPlay();
+	Renderer= GraphRenderer(GetWorld());
+	// create nodes
+	int n1 = Graph.AddNode(NodeFactory.CreateNode(FVector2D(100,100)));
+	int n2 = Graph.AddNode(NodeFactory.CreateNode(FVector2D(300,100)));
+	int n3 = Graph.AddNode(NodeFactory.CreateNode(FVector2D(300,300)));
+	int n4 = Graph.AddNode(NodeFactory.CreateNode(FVector2D(100,300)));
+
+	Graph.AddConnection(n1, n2);
+	Graph.AddConnection(n2, n3);
+	Graph.AddConnection(n3, n4);
+	Graph.AddConnection(n4, n1);
+	
 	
 	// Add the graph editor to our player
 	if (PlayerController = Cast<APlayerController>(GetWorld()->GetFirstLocalPlayerFromController()->PlayerController); 
@@ -40,6 +52,8 @@ void ALevel_GraphTheory::BeginPlay()
 	{
 		Player->SetCameraProjection(ECameraProjectionMode::Orthographic);
 	}
+	
+	
 	
 	// TODO Make the graph and a couple connected nodes here...
 	
@@ -92,6 +106,15 @@ void ALevel_GraphTheory::Tick(float DeltaTime)
 		ImGui::Spacing();
 		ImGui::Spacing();
 
+		ImGui::Text("Graph Theory");
+		ImGui::Spacing();
+		ImGui::Spacing();
+
+		if (ImGui::Button("Run Euler Path"))
+		{
+			RunEulerPath();
+		}
+		
 		//End
 		ImGui::End();
 	}
@@ -100,6 +123,22 @@ void ALevel_GraphTheory::Tick(float DeltaTime)
 	Renderer.RenderGraph(Graph);
 	
 	// TODO Check if the graph has updated
+	if (PlayerGraphEditor->HasGraphUpdated())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Graph updated!"));
+
+		EulerianPath euler(&Graph);
+		Eulerianity eulerianity{};
+    
+		std::vector<Node*> trail = euler.FindPath(eulerianity);
+
+		UE_LOG(LogTemp, Warning, TEXT("Trail size: %d"), trail.size());
+
+		if (!trail.empty())
+		{
+			UpdateAgentPath(trail);
+		}
+	}
 	// TODO if so, run the EulerianPath algorithm
 	// TODO if a path is found, have the agent follow it
 }
@@ -108,6 +147,10 @@ void ALevel_GraphTheory::UpdateAgentPath(std::vector<Node*> const& Trail)
 {
 	std::vector<FVector2D> path{};
 	
+	for (auto node : Trail)
+	{
+		path.emplace_back(node->GetPosition());
+	}
 	// TODO convert Node vector to positions vector
 
 	PathFollow.SetPath(path);
@@ -117,6 +160,18 @@ void ALevel_GraphTheory::UpdateAgentPath(std::vector<Node*> const& Trail)
 	}
 }
 
+void ALevel_GraphTheory::RunEulerPath()
+{
+	EulerianPath euler(&Graph);
+	Eulerianity eulerianity{};
+
+	std::vector<Node*> trail = euler.FindPath(eulerianity);
+
+	if (!trail.empty())
+	{
+		UpdateAgentPath(trail);
+	}
+}
 
 
 

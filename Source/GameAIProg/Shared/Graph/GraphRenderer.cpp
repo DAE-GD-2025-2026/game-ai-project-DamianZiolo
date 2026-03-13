@@ -31,6 +31,7 @@ namespace GameAI
 		
 		for (auto & Node : Graph.GetNodes())
 		{
+			if (!Node) continue; 
 			if (Node->GetId() != Graphs::InvalidNodeId) // We skip invalid nodes
 			{
 				if (auto FoundHighlight = std::ranges::find_if(HighlightedNodes, 

@@ -42,4 +42,5 @@ private:
 	UGraphEditorComponent* PlayerGraphEditor{}; // ref
 	
 	void UpdateAgentPath( std::vector<GameAI::Node*> const & Trail);
+	void RunEulerPath();
 };

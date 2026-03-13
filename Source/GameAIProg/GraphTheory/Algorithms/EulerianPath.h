@@ -36,40 +36,32 @@ namespace GameAI
 
 	inline Eulerianity EulerianPath::IsEulerian() const
 	{
-		
-		// TODO If the graph is not connected, there can be no Eulerian Trail
 		if (!IsConnected())
 			return Eulerianity::notEulerian;
-		
-		// TODO Count nodes with odd degree 
+
 		auto Nodes = m_pGraph->GetActiveNodes();
 		int oddDegree{ 0 };
+
 		for (int i = 0; i < static_cast<int>(Nodes.size()); ++i)
 		{
 			int NodeId = Nodes[i]->GetId();
+
 			auto fromConnections = m_pGraph->FindConnectionsFrom(NodeId);
 			auto toConnections = m_pGraph->FindConnectionsTo(NodeId);
-			
-			int connections = static_cast<int> (fromConnections.size() + toConnections.size()) ;
+
+			int connections = static_cast<int>(fromConnections.size() + toConnections.size());
+
 			if (connections % 2 != 0)
 				oddDegree++;
-			
-				
 		}
-		
+
 		if (oddDegree > 2)
 			return Eulerianity::notEulerian;
 		if (oddDegree == 2)
 			return Eulerianity::semiEulerian;
 		if (oddDegree == 0)
 			return Eulerianity::eulerian;
-		
-		
-		// TODO A connected graph with more than 2 nodes with an odd degree (an odd amount of connections) is not Eulerian
-		// TODO A connected graph with exactly 2 nodes with an odd degree is Semi-Eulerian (unless there are only 2 nodes)
-		// TODO An Euler trail can be made, but only starting and ending in these 2 nodes
-		// TODO A connected graph with no odd nodes is Eulerian
-		
+
 		return Eulerianity::notEulerian;
 	}
 
@@ -80,13 +72,15 @@ namespace GameAI
 		std::vector<Node*> Path = {};
 		std::vector<Node*> Nodes = graphCopy.GetActiveNodes();
 		int currentNodeId{ Graphs::InvalidNodeId };
-		
-		Eulerianity eulerian = IsEulerian();
+		// TODO Check if there can be an Euler path
+		// TODO If this graph is not eulerian, return the empty path
+		eulerianity = IsEulerian();
+		UE_LOG(LogTemp, Warning, TEXT("Eulerianity: %d"), (int)eulerianity);
 		if (Nodes.empty())
 			return Path;
-		if (eulerian == Eulerianity::notEulerian)
+		if (eulerianity == Eulerianity::notEulerian)
 			return Path;
-		else if (eulerian == Eulerianity::semiEulerian)
+		else if (eulerianity == Eulerianity::semiEulerian)
 		{
 			for (int i = 0; i < static_cast<int>(Nodes.size()); ++i)
 			{
@@ -100,14 +94,11 @@ namespace GameAI
 				}
 			}
 		}
-		else if (eulerian == Eulerianity::eulerian)
+		else if (eulerianity == Eulerianity::eulerian)
 		{
 			currentNodeId = Nodes[0]->GetId();
 		}
 		
-		
-		// TODO Check if there can be an Euler path
-		// TODO If this graph is not eulerian, return the empty path
 		
 		// TODO Start algorithm loop
 		std::stack<int> nodeStack;
@@ -122,9 +113,9 @@ namespace GameAI
 
 			    // Count how many connections the current node still has
 			    int degrees = static_cast<int>(fromConnections.size() + toConnections.size());
-
+			
 			    // If the current node still has connections
-			    if (degrees > 0)
+			   if (degrees > 0)
 			    {
 			        // Save the current node on the stack
 			        //  so we can return here later if needed
@@ -132,10 +123,7 @@ namespace GameAI
 
 			        // Pointer to the connection we will use next
 			        Connection* chosenConnection = nullptr;
-
-			        // ID of the next node we will move to
-			        int nextNodeId = Graphs::InvalidNodeId;
-
+			    	
 			        // If there are outgoing connections
 			        if (!fromConnections.empty())
 			        {
@@ -163,6 +151,15 @@ namespace GameAI
 			    }
 			    else
 			    {
+			    	Path.emplace_back(m_pGraph->GetNode(currentNodeId).get() );
+			    	
+			    	if (nodeStack.empty())
+			    	{
+			    		break;
+			    	}
+			    	
+			    	currentNodeId = nodeStack.top();
+			    	nodeStack.pop();
 			        // If the current node has no connections left,
 			        // this means we reached the end of this branch
 			        // Add the current node to the path
