@@ -151,6 +151,7 @@ void ALevel_PathfindingAStar::UpdateAgentPath(std::vector<Node*> const& Path)
 	{
 		Agent->SetPosition(pathPositions[0]);
 	}
+	
 }
 
 void ALevel_PathfindingAStar::UpdateImGui()

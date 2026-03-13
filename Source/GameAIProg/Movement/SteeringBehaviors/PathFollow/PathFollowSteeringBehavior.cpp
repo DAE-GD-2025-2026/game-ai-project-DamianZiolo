@@ -52,8 +52,12 @@ void PathFollow::GotoNextPathPoint()
 	{
 		FTargetData PathTarget{pathVec[currentPathIndex]};
 		//We have reached the last node
-		pArrive->SetTarget(PathTarget);
-		pCurrentSteering = pArrive;
+		//pArrive->SetTarget(PathTarget);
+		//pCurrentSteering = pArrive;
+		
+		//TEMPORARY I'M USING SEEK ALWAYS BECAUSE OTHER WAY AGENT IS STOPPING FOREVER
+		pSeek->SetTarget(PathTarget);
+		pCurrentSteering = pSeek;
 	}
 	else
 	{
