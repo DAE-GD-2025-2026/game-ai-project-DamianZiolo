@@ -11,7 +11,7 @@ public:
 	virtual ~PathFollow() override;
 	void SetPath(std::vector<FVector2D>& path);
 	virtual SteeringOutput CalculateSteering(float DeltaTime, ASteeringAgent & Agent) override;
-
+	void Reset();
 private:
 	Seek* pSeek = nullptr;
 	Arrive* pArrive = nullptr;
@@ -20,4 +20,5 @@ private:
 	int currentPathIndex = 0;
 
 	void GotoNextPathPoint();
+	
 };

@@ -63,3 +63,8 @@ void PathFollow::GotoNextPathPoint()
 		pCurrentSteering = pSeek;
 	}
 }
+
+void PathFollow::Reset()
+{
+	currentPathIndex = 0;
+}
