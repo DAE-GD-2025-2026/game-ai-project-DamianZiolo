@@ -9,7 +9,7 @@ std::unordered_map<TerrainNode::Type, FColor> const TerrainGridGraph::TerrainCol
 };
 std::unordered_map<TerrainNode::Type, float> const TerrainGridGraph::TerrainCostMultipliers
 {
-	{TerrainNode::Type::Mud, 2.0f},
+	{TerrainNode::Type::Mud, 5.0f},
 	{TerrainNode::Type::Water, 0},
 	{TerrainNode::Type::Clear, 1.0f},
 };

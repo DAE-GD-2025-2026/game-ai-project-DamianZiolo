@@ -42,7 +42,6 @@ void ALevel_PathfindingAStar::BeginPlay()
 	
 	// Create graph & renderer
 	Renderer = new GraphRenderer{GetWorld()};
-	GraphRenderOptions RenderOptions{};
 	RenderOptions.bDrawConnectionWeights = false;
 	RenderOptions.bDrawConnections = false;
 	RenderOptions.bDrawNodeIds = false;
@@ -90,6 +89,12 @@ void ALevel_PathfindingAStar::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	
 	UpdateImGui();
+	
+	RenderOptions.bDrawNodes = bDrawGrid;
+	RenderOptions.bDrawNodeIds = bDrawNodeNumbers;
+	RenderOptions.bDrawConnections = bDrawConnections;
+	RenderOptions.bDrawConnectionWeights = bDrawConnectionCosts;
+	Renderer->SetRenderOptions(RenderOptions);
 	
 	Renderer->RenderGraph(*TerrainGraph);
 	TerrainGraph->DebugDrawCells(GetWorld());
@@ -192,6 +197,11 @@ void ALevel_PathfindingAStar::UpdateImGui()
 		// ImGui::Checkbox("NodeNumbers", &bDrawNodeNumbers);
 		// ImGui::Checkbox("Connections", &bDrawConnections);
 		// ImGui::Checkbox("Connections Costs", &bDrawConnectionsCosts);
+		ImGui::Checkbox("Grid", &bDrawGrid);
+        ImGui::Checkbox("NodeNumbers", &bDrawNodeNumbers);
+        ImGui::Checkbox("Connections", &bDrawConnections);
+        ImGui::Checkbox("Connection Costs", &bDrawConnectionCosts);
+		
 		if (ImGui::Combo("", &SelectedHeuristic, "Manhattan\0Euclidean\0SqEuclidean\0Octile\0Chebyshev", 4))
 		{
 			switch (SelectedHeuristic)

@@ -156,5 +156,9 @@ std::vector<Node*> AStar::FindPath(Node* const pStartNode, Node* const pGoalNode
 float AStar::GetHeuristicCost(Node* const pStartNode, Node* const pEndNode) const
 {
 	FVector2D toDestination = pGraph->GetNode(pEndNode->GetId())->GetPosition() - pGraph->GetNode(pStartNode->GetId())->GetPosition();
-	return HeuristicFunction(abs(toDestination.X), abs(toDestination.Y));
+    float cellSize = 200.0f; 
+    float dx = abs(toDestination.X) / cellSize;
+    float dy = abs(toDestination.Y) / cellSize;
+
+    return HeuristicFunction(dx, dy);
 }
