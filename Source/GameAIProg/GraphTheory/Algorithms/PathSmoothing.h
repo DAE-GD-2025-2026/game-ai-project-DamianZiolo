@@ -9,59 +9,166 @@
 namespace GameAI
 {
 	class SSFA final
+	{
+	public:
+
+		static std::vector<NavLine> FindPortals(std::vector<Node*> const& Path, TriPolygon const& NavPoly)
+		{
+			std::vector<NavLine> Portals{};
+
+			if (Path.empty())
+				return Portals;
+
+			// START
+			NavLine startPortal;
+			startPortal.P1 = Path.front()->GetPosition();
+			startPortal.P2 = Path.front()->GetPosition();
+			Portals.emplace_back(startPortal);
+
+			for (int i = 0; i < Path.size(); ++i)
+			{
+				auto node = Path[i];
+				int edgeIndex = static_cast<NavGraphNode*>(node)->GetEdgeIdx();
+
+				if (edgeIndex == -1)
+					continue;
+
+				auto edge = NavPoly.GetEdges()[edgeIndex];
+
+				FVector2D a = FVector2D(edge.GetP1(NavPoly));
+				FVector2D b = FVector2D(edge.GetP2(NavPoly));
+
+				// kierunek ścieżki
+				FVector2D dir;
+
+				if (i < Path.size() - 1)
+					dir = (Path[i + 1]->GetPosition() - node->GetPosition()).GetSafeNormal();
+				else
+					dir = FVector2D(1, 0); // fallback
+
+				FVector2D edgeVec = b - a;
+
+				float cross = edgeVec.X * dir.Y - edgeVec.Y * dir.X;
+
+				NavLine portal;
+
+				if (cross >= 0)
+				{
+					portal.P1 = a; // RIGHT
+					portal.P2 = b; // LEFT
+				}
+				else
+				{
+					portal.P1 = b;
+					portal.P2 = a;
+				}
+
+				Portals.emplace_back(portal);
+			}
+
+			// END
+			NavLine endPortal;
+			endPortal.P1 = Path.back()->GetPosition();
+			endPortal.P2 = Path.back()->GetPosition();
+			Portals.emplace_back(endPortal);
+
+			return Portals;
+		}
+
+static std::vector<FVector2D> OptimizePortals(std::vector<NavLine> const& Portals, TriPolygon const&)
 {
-public:
-	//=== SSFA Functions ===
-	//--- References ---
-	//http://digestingduck.blogspot.be/2010/03/simple-stupid-funnel-algorithm.html
-	//https://gamedev.stackexchange.com/questions/68302/how-does-the-simple-stupid-funnel-algorithm-work
-	static std::vector<NavLine> FindPortals(std::vector<Node*> const & Path, TriPolygon const & NavPoly)
-	{
-		//Container
-		std::vector<NavLine> Portals = {};
-		
-		//For each node received, get it's corresponding line
-		
-			//Redetermine it's "orientation" based on the required path (left-right vs right-left) - p1 should be right point
+    std::vector<FVector2D> Path{};
 
-			//Store portal
+    if (Portals.empty())
+        return Path;
 
-		//Add degenerate portal to force end evaluation
+    FVector2D apex = Portals[0].P1;
 
-		return Portals;
-	}
+    FVector2D leftLeg  = Portals[0].P2 - apex;
+    FVector2D rightLeg = Portals[0].P1 - apex;
 
-	static std::vector<FVector2D> OptimizePortals( std::vector<NavLine> const & Portals, TriPolygon const & NavPoly)
-	{
-		std::vector<FVector2D> Path{};
-		//P1 == right point of portal, P2 == left point of portal
-		
-			//--- RIGHT CHECK ---
-			//1. See if moving funnel inwards - RIGHT
-			
-				//2. See if new line degenerates a line segment - RIGHT
-				
-					//Leftleg becomes new apex point
+    int apexIndex = 0;
+    int leftLegIndex = 0;
+    int rightLegIndex = 0;
 
-					//Calculate new legs (if not the end)
+    Path.push_back(apex);
 
+    for (int portalIdx = 1; portalIdx < Portals.size(); ++portalIdx)
+    {
+        const NavLine& portal = Portals[portalIdx];
 
-			//--- LEFT CHECK ---
-			//1. See if moving funnel inwards - LEFT
+        // ===== RIGHT CHECK =====
+        FVector2D newRight = portal.P1 - apex;
+        float crossRight = rightLeg.X * newRight.Y - rightLeg.Y * newRight.X;
 
-				//2. See if new line degenerates a line segment - LEFT
+        if (crossRight <= 0)
+        {
+            float crossLeft = leftLeg.X * newRight.Y - leftLeg.Y * newRight.X;
 
-					//Rightleg becomes new apex point
+            if (crossLeft < 0)
+            {
+                // SNAP TO LEFT
+                apex = apex + leftLeg;
+                Path.push_back(apex);
 
-					//Calculate new legs (if not the end)
+                apexIndex = leftLegIndex;
+                portalIdx = apexIndex;
 
+                leftLegIndex = apexIndex;
+                rightLegIndex = apexIndex;
 
-		// Add last path point
+                rightLeg = Portals[rightLegIndex].P1 - apex;
+                leftLeg  = Portals[leftLegIndex].P2 - apex;
 
-		return Path;
-	}
-private:
-	SSFA() {};
-	~SSFA() {};
-};
+                continue;
+            }
+            else
+            {
+                rightLeg = newRight;
+                rightLegIndex = portalIdx;
+            }
+        }
+
+        // ===== LEFT CHECK =====
+        FVector2D newLeft = portal.P2 - apex;
+        float crossLeftCheck = leftLeg.X * newLeft.Y - leftLeg.Y * newLeft.X;
+
+        if (crossLeftCheck >= 0)
+        {
+            float crossRightCheck = rightLeg.X * newLeft.Y - rightLeg.Y * newLeft.X;
+
+            if (crossRightCheck > 0)
+            {
+                // SNAP TO RIGHT
+                apex = apex + rightLeg;
+                Path.push_back(apex);
+
+                apexIndex = rightLegIndex;
+                portalIdx = apexIndex;
+
+                leftLegIndex = apexIndex;
+                rightLegIndex = apexIndex;
+
+                rightLeg = Portals[rightLegIndex].P1 - apex;
+                leftLeg  = Portals[leftLegIndex].P2 - apex;
+
+                continue;
+            }
+            else
+            {
+                leftLeg = newLeft;
+                leftLegIndex = portalIdx;
+            }
+        }
+    }
+
+    Path.push_back(Portals.back().P1);
+
+    return Path;
+}
+
+	private:
+		SSFA() {};
+		~SSFA() {};
+	};
 }

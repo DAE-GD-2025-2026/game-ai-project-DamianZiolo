@@ -5,7 +5,14 @@
 #include "CoreMinimal.h"
 #include "GraphTheory/Level_GraphTheory.h"
 #include "Shared/Graph/NavGraph/NavGraph.h"
+#include "GraphTheory/Algorithms/NavGraphPathfinding.h"
 #include "Level_Navmesh.generated.h"
+
+
+namespace GameAI
+{
+	struct NavLine;
+}
 
 UCLASS()
 class GAMEAIPROG_API ALevel_Navmesh : public ALevel_Base
@@ -42,6 +49,7 @@ private:
 	bool bDrawNavGraph{true};
 	bool bDrawPath{true};
 	bool bDrawPortals{false};
+	std::vector<GameAI::NavLine> DebugPortals;
 	
 	void UpdateImGui();
 	
