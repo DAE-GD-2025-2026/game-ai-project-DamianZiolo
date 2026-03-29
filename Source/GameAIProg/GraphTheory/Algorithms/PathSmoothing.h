@@ -38,7 +38,7 @@ namespace GameAI
 				FVector2D a = FVector2D(edge.GetP1(NavPoly));
 				FVector2D b = FVector2D(edge.GetP2(NavPoly));
 
-				// kierunek ścieżki
+				// Path Direction
 				FVector2D dir;
 
 				if (i < Path.size() - 1)
