@@ -39,6 +39,7 @@ private:
 		Evade,
 		Pursuit,
 		Face,
+		WolfPack,
 
 		// @ End
 		Count
@@ -64,4 +65,5 @@ private:
 	void RefreshTargetLabels();
 	void UpdateTarget(ImGui_Agent& Agent);
 	void RefreshAgentTargets(unsigned int IndexRemoved);
+	void RefreshWolfPackAgents();
 };

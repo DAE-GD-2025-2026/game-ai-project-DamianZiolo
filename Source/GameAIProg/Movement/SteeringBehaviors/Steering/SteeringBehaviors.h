@@ -113,3 +113,25 @@ protected:
 	float m_MaxAngleChance = FMath::DegreesToRadians(45.f);
 	float m_WanderAngle = 0.f;
 };
+
+class WolfPack : public ISteeringBehavior
+{
+public:
+	WolfPack() = default;
+	virtual ~WolfPack() override = default;
+	
+	virtual SteeringOutput CalculateSteering(float DeltaT, ASteeringAgent& Agent) override;
+	void SetPackMates(const TArray<ASteeringAgent*>& Pack)
+	{
+		PackMates = Pack;
+	}
+	
+	void SetSurroundRadius(float radius) { SurroundRadius = radius; }
+	
+	private:
+	TArray<ASteeringAgent*> PackMates;
+
+	float SurroundRadius = 150.f;
+
+	
+};

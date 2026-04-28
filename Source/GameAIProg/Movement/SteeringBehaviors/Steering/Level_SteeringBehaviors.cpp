@@ -114,7 +114,7 @@ void ALevel_SteeringBehaviors::Tick(float DeltaTime)
 			ImGui::PushItemWidth(100);
 
 			// Add the names of your steering behaviors
-			if (ImGui::Combo("", &a.SelectedBehavior, "Seek\0Wander\0Flee\0Arrive\0Evade\0Pursuit\0Face", 4))
+			if (ImGui::Combo("", &a.SelectedBehavior, "Seek\0Wander\0Flee\0Arrive\0Evade\0Pursuit\0Face\0WolfPack\0", 4))
 			{
 				bBehaviourModified = true;
 			}
@@ -203,7 +203,8 @@ bool ALevel_SteeringBehaviors::AddAgent(BehaviorTypes BehaviorType, bool AutoOri
 		SteeringAgents.push_back(std::move(ImGuiAgent));
 		
 		RefreshTargetLabels();
-
+		RefreshWolfPackAgents();
+			
 		return true;
 	}
 
@@ -217,6 +218,7 @@ void ALevel_SteeringBehaviors::RemoveAgent(unsigned int Index)
 
 	RefreshTargetLabels();
 	RefreshAgentTargets(Index);
+	RefreshWolfPackAgents();
 }
 
 void ALevel_SteeringBehaviors::SetAgentBehavior(ImGui_Agent& Agent)
@@ -247,6 +249,9 @@ void ALevel_SteeringBehaviors::SetAgentBehavior(ImGui_Agent& Agent)
 	case BehaviorTypes::Wander:
 		Agent.Behavior = std::make_unique<Wander>();
 		break;
+	case BehaviorTypes::WolfPack:
+		Agent.Behavior = std::make_unique<WolfPack>();
+		break;
 	default:
 		assert(false); // Incorrect Agent Behavior gotten during SetAgentBehavior()	
 	}
@@ -254,6 +259,7 @@ void ALevel_SteeringBehaviors::SetAgentBehavior(ImGui_Agent& Agent)
 	UpdateTarget(Agent);
 	
 	Agent.Agent->SetSteeringBehavior(Agent.Behavior.get());
+	RefreshWolfPackAgents();
 }
 
 void ALevel_SteeringBehaviors::RefreshTargetLabels()
@@ -301,6 +307,34 @@ void ALevel_SteeringBehaviors::RefreshAgentTargets(unsigned int IndexRemoved)
 			{
 				--Agent.SelectedTarget;
 			}
+		}
+	}
+}
+
+void ALevel_SteeringBehaviors::RefreshWolfPackAgents()
+{
+	TArray<ASteeringAgent*> AllWolfAgents;
+
+	for (ImGui_Agent& a : SteeringAgents)
+	{
+		if (!a.Agent || !a.Behavior)
+			continue;
+
+		if (static_cast<BehaviorTypes>(a.SelectedBehavior) == BehaviorTypes::WolfPack)
+		{
+			AllWolfAgents.Add(a.Agent);
+		}
+	}
+
+	for (ImGui_Agent& a : SteeringAgents)
+	{
+		if (!a.Agent || !a.Behavior)
+			continue;
+
+		if (static_cast<BehaviorTypes>(a.SelectedBehavior) == BehaviorTypes::WolfPack)
+		{
+			WolfPack* Wolf = static_cast<WolfPack*>(a.Behavior.get());
+			Wolf->SetPackMates(AllWolfAgents);
 		}
 	}
 }

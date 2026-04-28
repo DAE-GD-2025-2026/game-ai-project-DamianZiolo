@@ -378,3 +378,66 @@ SteeringOutput Wander::CalculateSteering(float deltaT, ASteeringAgent& Agent)
 
     return Steering;
 }
+
+SteeringOutput WolfPack::CalculateSteering(float deltaT, ASteeringAgent& Agent)
+{
+    SteeringOutput Steering{};
+
+    const FVector2D agentPos = Agent.GetPosition();
+
+    const int32 packCount = PackMates.Num();
+    if (packCount <= 0)
+    {
+        Steering.IsValid = false;
+        return Steering;
+    }
+
+    const int32 myIndex = PackMates.IndexOfByKey(&Agent);
+    if (myIndex == INDEX_NONE)
+    {
+        Steering.IsValid = false;
+        return Steering;
+    }
+
+    // 360 / amount of wolves
+    const float angleStep = 2.f * PI / static_cast<float>(packCount);
+    const float myAngle = angleStep * static_cast<float>(myIndex);
+
+    // Direction from target to this wolf's slot
+    const FVector2D slotDirection(
+        FMath::Cos(myAngle),
+        FMath::Sin(myAngle)
+    );
+
+    // Position around the target assigned to this wolf
+    const FVector2D desiredPosition =
+        Target.Position + slotDirection * SurroundRadius;
+    
+    const FVector2D toSlot = desiredPosition - agentPos;
+
+    Steering.LinearVelocity = toSlot;
+
+    // Debug slot position
+    DrawDebugSphere(
+        Agent.GetWorld(),
+        FVector(desiredPosition, 0.f),
+        12.f,
+        12,
+        FColor::Purple,
+        false,
+        0.f
+    );
+
+    DrawDebugLine(
+        Agent.GetWorld(),
+        FVector(agentPos, 0.f),
+        FVector(desiredPosition, 0.f),
+        FColor::Purple,
+        false,
+        0.f,
+        0,
+        2.f
+    );
+
+    return Steering;
+}
