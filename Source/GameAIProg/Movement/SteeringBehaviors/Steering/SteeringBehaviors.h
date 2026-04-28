@@ -130,8 +130,11 @@ public:
 	
 	private:
 	TArray<ASteeringAgent*> PackMates;
-
-	float SurroundRadius = 150.f;
-
+	
+	float SurroundingRange = 500.f;   
+	float SurroundRadius = 150.f;     
+	float SeparationRadius = 120.f;   
+	float SeparationWeight = 0.5f;
+	float AvoidTargetWeight = 3.f;
 	
 };

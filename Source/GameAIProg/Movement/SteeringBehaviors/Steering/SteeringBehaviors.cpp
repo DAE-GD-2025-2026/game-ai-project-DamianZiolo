@@ -383,61 +383,83 @@ SteeringOutput WolfPack::CalculateSteering(float deltaT, ASteeringAgent& Agent)
 {
     SteeringOutput Steering{};
 
+    // base
     const FVector2D agentPos = Agent.GetPosition();
+    const FVector2D toTarget = Target.Position - agentPos;
+    const float distanceToTarget = toTarget.Size();
 
+    // pack
     const int32 packCount = PackMates.Num();
     if (packCount <= 0)
     {
-        Steering.IsValid = false;
+        Steering.LinearVelocity = toTarget.GetSafeNormal(); // fallback
         return Steering;
     }
 
     const int32 myIndex = PackMates.IndexOfByKey(&Agent);
     if (myIndex == INDEX_NONE)
     {
-        Steering.IsValid = false;
+        Steering.LinearVelocity = toTarget.GetSafeNormal(); // fallback
         return Steering;
     }
 
-    // 360 / amount of wolves
-    const float angleStep = 2.f * PI / static_cast<float>(packCount);
-    const float myAngle = angleStep * static_cast<float>(myIndex);
+    FVector2D desiredVelocity = FVector2D::ZeroVector;
 
-    // Direction from target to this wolf's slot
-    const FVector2D slotDirection(
-        FMath::Cos(myAngle),
-        FMath::Sin(myAngle)
-    );
+    // chase
+    if (distanceToTarget > SurroundingRange)
+    {
+        desiredVelocity = toTarget.GetSafeNormal();
+    }
+    else
+    {
+        // slot
+        const float angleStep = 2.f * PI / static_cast<float>(packCount);
+        const float myAngle = angleStep * static_cast<float>(myIndex);
 
-    // Position around the target assigned to this wolf
-    const FVector2D desiredPosition =
-        Target.Position + slotDirection * SurroundRadius;
-    
-    const FVector2D toSlot = desiredPosition - agentPos;
+        const FVector2D slotDir(
+            FMath::Cos(myAngle),
+            FMath::Sin(myAngle)
+        );
 
-    Steering.LinearVelocity = toSlot;
+        const FVector2D desiredPos =
+            Target.Position + slotDir * SurroundRadius;
 
-    // Debug slot position
-    DrawDebugSphere(
-        Agent.GetWorld(),
-        FVector(desiredPosition, 0.f),
-        12.f,
-        12,
-        FColor::Purple,
-        false,
-        0.f
-    );
+        desiredVelocity = (desiredPos - agentPos).GetSafeNormal();
+    }
 
-    DrawDebugLine(
-        Agent.GetWorld(),
-        FVector(agentPos, 0.f),
-        FVector(desiredPosition, 0.f),
-        FColor::Purple,
-        false,
-        0.f,
-        0,
-        2.f
-    );
+    // separation
+    FVector2D separationForce = FVector2D::ZeroVector;
+
+    for (ASteeringAgent* Wolf : PackMates)
+    {
+        if (!Wolf || Wolf == &Agent)
+            continue;
+
+        const FVector2D away = agentPos - Wolf->GetPosition();
+        const float dist = away.Size();
+
+        if (dist > 0.f && dist < SeparationRadius)
+        {
+            const float strength = 1.f - dist / SeparationRadius;
+            separationForce += away.GetSafeNormal() * strength;
+        }
+    }
+
+    // avoid
+    FVector2D avoidTarget = FVector2D::ZeroVector;
+
+    if (distanceToTarget < SurroundRadius)
+    {
+        const FVector2D away = agentPos - Target.Position;
+        const float strength = 1.f - distanceToTarget / SurroundRadius;
+        avoidTarget = away.GetSafeNormal() * strength;
+    }
+
+    // combine
+    Steering.LinearVelocity =
+        desiredVelocity +
+        separationForce * SeparationWeight +
+        avoidTarget * AvoidTargetWeight;
 
     return Steering;
 }
